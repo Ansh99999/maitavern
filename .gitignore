@@ -1,14 +1,15 @@
-# Dependencies
 node_modules/
 
-# Runtime / local data
-user
+# local runtime artifacts
 .server.log
-
-# Python cache
 __pycache__/
-*.py[cod]
+user
 
-# OS/editor noise
-.DS_Store
-Thumbs.db
+# local android build/tooling artifacts
+android-sdk/
+android-apk/
+android-ci/.gradle/
+android-ci/build/
+android-ci/app/build/
+android-ci/app/src/main/assets/
+android-ci/local.properties

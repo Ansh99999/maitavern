@@ -5254,6 +5254,63 @@ function hasFileSystemAccessApi() {
   return typeof fetch === "function";
 }
 
+function canUseBrowserStorage() {
+  try {
+    if (typeof localStorage === "undefined") return false;
+    const probeKey = "__maitavern_probe__";
+    localStorage.setItem(probeKey, "1");
+    localStorage.removeItem(probeKey);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function writeUserFileToBrowserStorage(payload) {
+  if (!canUseBrowserStorage()) return false;
+  try {
+    const text = JSON.stringify(payload);
+    localStorage.setItem(USER_FILE_STORAGE_KEY, text);
+    if (payload?.state && typeof payload.state === "object") {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload.state));
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function readUserFileFromBrowserStorage() {
+  if (!canUseBrowserStorage()) return null;
+
+  try {
+    const userFileRaw = localStorage.getItem(USER_FILE_STORAGE_KEY);
+    if (userFileRaw) {
+      const parsed = JSON.parse(userFileRaw);
+      if (parsed && typeof parsed === "object") {
+        return parsed;
+      }
+    }
+  } catch {
+    // keep trying legacy key
+  }
+
+  try {
+    const legacyRaw = localStorage.getItem(STORAGE_KEY);
+    if (!legacyRaw) return null;
+    const parsedState = JSON.parse(legacyRaw);
+    if (!parsedState || typeof parsedState !== "object") return null;
+    return {
+      app: "maitavern",
+      schemaVersion: USER_FILE_SCHEMA_VERSION,
+      exportedAt: new Date().toISOString(),
+      state: parsedState,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function writeUserFileToDisk(payload) {
   try {
     const response = await fetch(USER_FILE_ENDPOINT, {
@@ -5270,6 +5327,9 @@ async function writeUserFileToDisk(payload) {
     deviceStorageUnavailable = false;
   } catch (error) {
     deviceStorageUnavailable = true;
+    if (writeUserFileToBrowserStorage(payload)) {
+      return;
+    }
     throw new Error(`Local device storage unavailable. Start MaiTavern server (${error?.message || "request failed"})`);
   }
 }
@@ -5298,6 +5358,12 @@ async function readUserFileFromDisk() {
     deviceStorageUnavailable = false;
     return { parsed };
   } catch (error) {
+    const fallback = readUserFileFromBrowserStorage();
+    if (fallback && typeof fallback === "object") {
+      deviceStorageUnavailable = true;
+      return { parsed: fallback };
+    }
+
     deviceStorageUnavailable = true;
     throw new Error(`Local device storage unavailable. Start MaiTavern server (${error?.message || "request failed"})`);
   }
@@ -5305,14 +5371,13 @@ async function readUserFileFromDisk() {
 
 async function flushPendingUserFileWrite() {
   if (!pendingUserFilePayload || userFileWriteInFlight) return;
-  if (!hasFileSystemAccessApi()) return;
 
   userFileWriteInFlight = true;
   try {
     const payload = pendingUserFilePayload;
     pendingUserFilePayload = null;
     await writeUserFileToDisk(payload);
-    setStatus(`Saved to local file: ${USER_FILE_NAME}`);
+    setStatus(deviceStorageUnavailable ? "Saved locally on device" : `Saved to local file: ${USER_FILE_NAME}`);
   } catch {
     // Keep payload for retry on next save.
   } finally {
@@ -5328,7 +5393,11 @@ async function flushPendingUserFileWrite() {
 
 function persistUserFile() {
   const payload = createUserFilePayload();
-  if (!hasFileSystemAccessApi()) return;
+
+  if (!hasFileSystemAccessApi()) {
+    writeUserFileToBrowserStorage(payload);
+    return;
+  }
 
   pendingUserFilePayload = payload;
   if (userFileWriteTimer) {
@@ -5344,6 +5413,20 @@ function loadUserFile() {
 }
 
 function loadLegacyStateFromStorage() {
+  const storedPayload = readUserFileFromBrowserStorage();
+  const importedState = storedPayload?.state && typeof storedPayload.state === "object"
+    ? storedPayload.state
+    : storedPayload && typeof storedPayload === "object"
+      ? storedPayload
+      : null;
+
+  if (importedState) {
+    return {
+      ...structuredClone(defaults),
+      ...importedState,
+    };
+  }
+
   return structuredClone(defaults);
 }
 
