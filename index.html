@@ -1,0 +1,1078 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>MaiTavern</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div id="welcomeScreen" class="welcome-screen">
+    <div class="welcome-content">
+      <p class="eyebrow">Minimal AI Tavern</p>
+      <h1>Welcome to MaiTavern!</h1>
+      <p class="welcome-copy">A clean, low-distraction space for characters, presets, providers, and chats.</p>
+      <button id="enterAppBtn" class="primary large-button">Enter</button>
+    </div>
+  </div>
+
+  <div class="app-shell hidden" id="appShell">
+    <header class="topbar">
+      <button id="homeBrandBtn" class="brand-block brand-home-button" type="button" aria-label="Go to home">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 19h14"></path>
+            <path d="M7 19V8l5-3 5 3v11"></path>
+            <path d="M9.5 11h5"></path>
+            <path d="M9.5 14h5"></path>
+          </svg>
+        </div>
+        <div class="title-wrap">
+          <h1>MaiTavern</h1>
+          <p id="statusText">Ready</p>
+        </div>
+      </button>
+
+      <div class="topbar-actions">
+        <button id="settingsToggle" class="icon-button hidden" aria-label="Open chat menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16"></path>
+            <path d="M4 12h16"></path>
+            <path d="M4 17h16"></path>
+          </svg>
+        </button>
+        <button id="newChatBtn" class="icon-button" aria-label="New chat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14"></path>
+            <path d="M5 12h14"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <aside id="settingsPanel" class="settings-panel hidden">
+      <div class="panel-header">
+        <h2>Settings</h2>
+        <button id="closeSettingsBtn" class="icon-button" aria-label="Close settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M6 6l12 12"></path>
+            <path d="M18 6L6 18"></path>
+          </svg>
+        </button>
+      </div>
+
+      <label class="field">
+        <span>Endpoint URL</span>
+        <input id="endpointInput" type="url" placeholder="https://example.com/v1 or .../chat/completions" />
+        <small>Use either a base URL or the full <code>/chat/completions</code> endpoint.</small>
+      </label>
+
+      <label class="field">
+        <span>API key</span>
+        <input id="apiKeyInput" type="password" placeholder="sk-..." />
+      </label>
+
+      <label class="field">
+        <span>Auth header name</span>
+        <input id="authHeaderInput" type="text" placeholder="Authorization" />
+      </label>
+
+      <label class="field">
+        <span>Auth prefix</span>
+        <input id="authPrefixInput" type="text" placeholder="Bearer " />
+      </label>
+
+      <label class="field">
+        <span>Models</span>
+        <textarea id="modelsInput" rows="4" placeholder="gpt-4o\ngpt-4o-mini"></textarea>
+        <small>One model per line.</small>
+      </label>
+
+      <div class="button-row inline-controls">
+        <button id="fetchModelsBtn" class="secondary" type="button">Fetch models</button>
+        <span id="fetchModelsStatus" class="inline-status" aria-live="polite"></span>
+      </div>
+
+      <label class="field">
+        <span>Extra headers (JSON)</span>
+        <textarea id="extraHeadersInput" rows="4" placeholder='{"X-Provider": "my-gateway"}'></textarea>
+      </label>
+
+      <label class="field">
+        <span>Extra body fields (JSON)</span>
+        <textarea id="extraBodyInput" rows="4" placeholder='{"provider": "custom"}'></textarea>
+      </label>
+
+      <div class="button-row">
+        <button id="saveSettingsBtn" class="primary">Save</button>
+        <button id="clearStorageBtn" class="danger">Clear saved data</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <section id="homeView" class="view active">
+        <div class="hero-card">
+          <p class="eyebrow">Home</p>
+          <h2>Minimal, focused, and SillyTavern-aware</h2>
+          <p>Choose where to go next. These sections are prepared for character management, presets, providers, and recent chats.</p>
+        </div>
+
+        <section class="home-grid" aria-label="Main sections">
+          <button class="nav-card active" data-view="charactersView">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
+                <circle cx="10" cy="7" r="4"></circle>
+                <path d="M21 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </span>
+            <span class="nav-copy">
+              <strong>Characters</strong>
+              <small>Search, import, create, edit, export, or start chats.</small>
+            </span>
+          </button>
+
+          <button class="nav-card" data-view="presetsView">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
+              </svg>
+            </span>
+            <span class="nav-copy">
+              <strong>Presets</strong>
+              <small>Keep system prompts, temperature, and SillyTavern-style preset data.</small>
+            </span>
+          </button>
+
+          <button class="nav-card" data-view="providersView">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="6" rx="2"></rect>
+                <rect x="3" y="14" width="18" height="6" rx="2"></rect>
+                <path d="M7 7h.01"></path>
+                <path d="M7 17h.01"></path>
+              </svg>
+            </span>
+            <span class="nav-copy">
+              <strong>Providers</strong>
+              <small>Add OpenAI-compatible base URLs, API keys, import, and export.</small>
+            </span>
+          </button>
+
+          <button class="nav-card" data-view="libraryView">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              </svg>
+            </span>
+            <span class="nav-copy">
+              <strong>Library</strong>
+              <small>Lorebooks, scenario prompts, stored pictures, and other reusable content.</small>
+            </span>
+          </button>
+
+          <button class="nav-card" data-view="customizationView">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3v3"></path>
+                <path d="M12 18v3"></path>
+                <path d="M3 12h3"></path>
+                <path d="M18 12h3"></path>
+                <circle cx="12" cy="12" r="4"></circle>
+              </svg>
+            </span>
+            <span class="nav-copy">
+              <strong>Customisation</strong>
+              <small>Adjust chat interface avatars, colors, and text formatting rules.</small>
+            </span>
+          </button>
+
+          <button class="nav-card" data-view="dataView">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 7h16"></path>
+                <path d="M4 12h16"></path>
+                <path d="M4 17h16"></path>
+                <path d="M8 7v10"></path>
+              </svg>
+            </span>
+            <span class="nav-copy">
+              <strong>Data</strong>
+              <small>Import or export your full user data package.</small>
+            </span>
+          </button>
+
+          <button class="nav-card" data-view="chatsView">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </span>
+            <span class="nav-copy">
+              <strong>Chats</strong>
+              <small>See recent conversations and continue where you left off.</small>
+            </span>
+          </button>
+        </section>
+      </section>
+
+      <section id="charactersView" class="view detail-view">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Characters</p>
+            <h2>Character library</h2>
+          </div>
+        </div>
+
+        <div class="toolbar compact-gap">
+          <input id="characterSearchInput" type="search" placeholder="Search characters" />
+        </div>
+
+        <div class="button-row">
+          <button id="characterStudioBtn" class="primary" type="button">Character studio</button>
+        </div>
+
+        <input id="characterImportInput" type="file" accept="application/json,.json" class="hidden" />
+        <input id="characterAvatarImportInput" type="file" accept="image/*" class="hidden" />
+
+        <section id="characterList" class="entity-list"></section>
+      </section>
+
+      <section id="characterStudioView" class="view detail-view">
+        <div class="section-header compact-gap">
+          <div>
+            <p class="eyebrow">Character studio</p>
+            <h2>Build or edit a character</h2>
+          </div>
+          <div class="button-row">
+            <button id="characterStudioImportJsonBtn" class="secondary" type="button">Import JSON</button>
+            <button id="characterStudioImportAvatarBtn" class="secondary" type="button">Import avatar</button>
+          </div>
+        </div>
+
+        <section id="characterEditorCard" class="provider-form-card">
+          <div class="field-grid">
+            <label class="field">
+              <span>Character name</span>
+              <input id="characterNameInput" type="text" placeholder="Character name" />
+            </label>
+            <label class="field">
+              <span>Avatar</span>
+              <label class="asset-upload-button character-avatar-upload" for="characterAvatarInput">Choose avatar</label>
+              <input id="characterAvatarInput" type="file" accept="image/*" class="hidden" />
+            </label>
+            <label class="field full-span">
+              <div id="characterAvatarPreview" class="character-avatar-preview hidden"></div>
+            </label>
+            <label class="field full-span">
+              <span>Scenario</span>
+              <textarea id="characterScenarioInput" rows="5" placeholder="Scenario"></textarea>
+            </label>
+            <label class="field full-span">
+              <span>Personality</span>
+              <textarea id="characterPersonalityInput" rows="6" placeholder="Personality"></textarea>
+            </label>
+            <label class="field full-span">
+              <span>Greeting message</span>
+              <textarea id="characterGreetingInput" rows="6" placeholder="First message / greeting"></textarea>
+            </label>
+            <label class="field full-span">
+              <span>Alternate greetings (separate variants with ---)</span>
+              <textarea id="characterAlternateGreetingsInput" rows="5" placeholder="Greeting variant 1...&#10;&#10;---&#10;&#10;Greeting variant 2..."></textarea>
+            </label>
+          </div>
+          <div class="button-row">
+            <button id="characterSaveBtn" class="primary">Save character</button>
+            <button id="characterCancelBtn" class="secondary">Back to characters</button>
+          </div>
+        </section>
+      </section>
+
+      <section id="customizationView" class="view detail-view">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Customisation</p>
+            <h2>Interface controls</h2>
+          </div>
+        </div>
+
+        <div class="entity-list">
+          <section class="provider-form-card collapsible-card">
+            <button id="chatCustomizationSectionBtn" class="drawer-link collapsible-trigger" type="button">Chat customisation</button>
+            <div id="chatCustomizationSection" class="collapsible-panel hidden">
+              <div class="button-row">
+                <button id="avatarSizeSectionBtn" class="secondary collapsible-trigger" type="button">Avatar size</button>
+                <button id="textWrappingSectionBtn" class="secondary collapsible-trigger" type="button">Text wrapping</button>
+                <button id="textFontSectionBtn" class="secondary collapsible-trigger" type="button">Text font</button>
+              </div>
+              <div id="avatarSizeSection" class="collapsible-panel hidden">
+                <section id="avatarSizeEditor" class="provider-form-card popdown-editor">
+                  <div class="field-grid">
+                    <label class="field">
+                      <span>Avatar size (px)</span>
+                      <input id="avatarSizeInput" type="number" min="24" max="120" step="1" placeholder="40" />
+                    </label>
+                  </div>
+                  <div class="button-row">
+                    <button id="saveCustomizationBtn" class="primary" type="button">Save chat customisation</button>
+                  </div>
+                </section>
+              </div>
+              <div id="textWrappingSection" class="collapsible-panel hidden">
+                <section class="provider-form-card popdown-editor">
+                  <div class="field-grid">
+                    <label class="field">
+                      <span>Default text color</span>
+                      <input id="defaultTextColorInput" type="color" />
+                    </label>
+                    <label class="field">
+                      <span>Search wrap rule</span>
+                      <input id="wrapRuleSearchInput" type="search" placeholder="Search by title or symbols" />
+                    </label>
+                  </div>
+                  <div class="button-row">
+                    <button id="addWrapRuleBtn" class="secondary" type="button">New wrap rule</button>
+                  </div>
+                </section>
+                <section id="wrapRuleEditor" class="provider-form-card hidden popdown-editor">
+                  <div class="field-grid">
+                    <label class="field">
+                      <span>Title</span>
+                      <input id="wrapRuleTitleInput" type="text" placeholder="My wrap rule" />
+                    </label>
+                    <label class="field">
+                      <span>Start symbol</span>
+                      <input id="wrapRuleStartInput" type="text" />
+                    </label>
+                    <label class="field">
+                      <span>End symbol</span>
+                      <input id="wrapRuleEndInput" type="text" />
+                    </label>
+                    <label class="field">
+                      <span>Color</span>
+                      <input id="wrapRuleColorInput" type="color" />
+                    </label>
+                    <label class="field full-span">
+                      <span>Hex code override</span>
+                      <input id="wrapRuleHexInput" type="text" placeholder="#c084fc" />
+                    </label>
+                  </div>
+                  <div class="button-row">
+                    <button id="saveWrapRuleBtn" class="primary" type="button">Save wrap</button>
+                    <button id="deleteWrapRuleBtn" class="danger" type="button">Delete wrap</button>
+                    <button id="closeWrapRuleEditorBtn" class="secondary" type="button">Close</button>
+                  </div>
+                </section>
+                <section id="wrapRuleList" class="entity-list compact-entity-list"></section>
+              </div>
+              <div id="textFontSection" class="collapsible-panel hidden">
+                <section class="provider-form-card popdown-editor">
+                  <p class="entity-meta">Current app font: <strong id="currentFontName">System default (Inter stack)</strong></p>
+                  <div class="button-row">
+                    <button id="openFontManagerBtn" class="secondary" type="button">Open font manager</button>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="dataView" class="view detail-view">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Data</p>
+            <h2>User data package</h2>
+          </div>
+        </div>
+
+        <section class="provider-form-card">
+          <p class="entity-meta">Your complete MaiTavern user file contains characters, presets, providers, chats, customisation, and other app changes.</p>
+          <div class="button-row">
+            <button id="exportDataBtn" class="primary" type="button">Export data (.zip)</button>
+            <button id="importDataBtn" class="secondary" type="button">Import data (.zip)</button>
+          </div>
+          <input id="importDataInput" type="file" accept=".zip,application/zip,application/x-zip-compressed" class="hidden" />
+          <p id="dataStatus" class="inline-status" aria-live="polite"></p>
+        </section>
+      </section>
+
+      <section id="presetsView" class="view detail-view">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Presets</p>
+            <h2>Preset overview</h2>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="toolbar-actions">
+            <button id="presetImportBtn" class="secondary">Import</button>
+            <button id="presetExportBtn" class="secondary">Export</button>
+            <button id="presetNewBtn" class="primary">New preset</button>
+          </div>
+        </div>
+
+        <input id="presetImportInput" type="file" accept="application/json,.json" multiple class="hidden" />
+
+        <section id="presetFormCard" class="provider-form-card hidden">
+          <div class="field-grid">
+            <label class="field">
+              <span>Name</span>
+              <input id="presetNameInput" type="text" placeholder="My preset" />
+            </label>
+            <label class="field">
+              <span>Temperature</span>
+              <input id="presetTemperatureInput" type="number" min="0" max="2" step="0.1" placeholder="0.7" />
+            </label>
+            <label class="field">
+              <span>Top P</span>
+              <input id="presetTopPInput" type="number" min="0" max="1" step="0.01" placeholder="1.0" />
+            </label>
+            <label class="field">
+              <span>Max tokens</span>
+              <input id="presetMaxTokensInput" type="number" min="1" step="1" placeholder="300" />
+            </label>
+            <label class="field checkbox-field">
+              <span>Text streaming</span>
+              <input id="presetStreamInput" type="checkbox" />
+            </label>
+            <label class="field full-span">
+              <span>System prompt</span>
+              <textarea id="presetSystemPromptInput" rows="4" placeholder="You are a helpful assistant."></textarea>
+            </label>
+            <label class="field full-span">
+              <span>Context template</span>
+              <textarea id="presetContextTemplateInput" rows="5" placeholder="{{system}}&#10;{{description}}&#10;{{scenario}}"></textarea>
+            </label>
+            <label class="field">
+              <span>Chat start</span>
+              <input id="presetChatStartInput" type="text" placeholder="***" />
+            </label>
+            <label class="field">
+              <span>Example separator</span>
+              <input id="presetExampleSeparatorInput" type="text" placeholder="***" />
+            </label>
+            <label class="field">
+              <span>Instruct user sequence</span>
+              <input id="presetInstructUserInput" type="text" placeholder="&lt;|im_start|&gt;user" />
+            </label>
+            <label class="field">
+              <span>Instruct assistant sequence</span>
+              <input id="presetInstructAssistantInput" type="text" placeholder="&lt;|im_start|&gt;assistant" />
+            </label>
+            <label class="field">
+              <span>Instruct system sequence</span>
+              <input id="presetInstructSystemInput" type="text" placeholder="&lt;|im_start|&gt;system" />
+            </label>
+            <label class="field">
+              <span>Stop sequence</span>
+              <input id="presetStopSequenceInput" type="text" placeholder="&lt;|im_end|&gt;" />
+            </label>
+            <label class="field checkbox-field">
+              <span>Use system prompt</span>
+              <input id="presetUseSystemPromptInput" type="checkbox" checked />
+            </label>
+            <label class="field">
+              <span>Names behavior</span>
+              <input id="presetNamesBehaviorInput" type="text" placeholder="force / none" />
+            </label>
+            <label class="field full-span">
+              <span>Scenario format</span>
+              <input id="presetScenarioFormatInput" type="text" placeholder="{{scenario}}" />
+            </label>
+            <label class="field full-span">
+              <span>Personality format</span>
+              <input id="presetPersonalityFormatInput" type="text" placeholder="{{personality}}" />
+            </label>
+          </div>
+
+          <section class="provider-form-card">
+            <div class="section-header compact-gap">
+              <div>
+                <p class="eyebrow">Prompt blocks</p>
+                <h3>SillyTavern-style toggles & injections</h3>
+              </div>
+              <div class="button-row">
+                <button id="presetAddPromptBtn" class="secondary" type="button">Add prompt</button>
+              </div>
+            </div>
+            <section id="presetPromptList" class="entity-list compact-entity-list"></section>
+
+            <div id="presetPromptModalBackdrop" class="modal-backdrop hidden"></div>
+            <section id="presetPromptEditor" class="provider-form-card hidden popdown-editor modal-card">
+              <div class="field-grid">
+                <label class="field">
+                  <span>Identifier</span>
+                  <input id="presetPromptIdentifierInput" type="text" />
+                </label>
+                <label class="field">
+                  <span>Name</span>
+                  <input id="presetPromptNameInput" type="text" />
+                </label>
+                <label class="field">
+                  <span>Role</span>
+                  <select id="presetPromptRoleInput">
+                    <option value="system">system</option>
+                    <option value="user">user</option>
+                    <option value="assistant">assistant</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Injection position</span>
+                  <select id="presetPromptInjectionPositionInput">
+                    <option value="0">0 (before history)</option>
+                    <option value="1">1 (after history)</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Injection depth</span>
+                  <input id="presetPromptInjectionDepthInput" type="number" min="0" step="1" placeholder="4" />
+                </label>
+                <label class="field checkbox-field">
+                  <span>Enabled</span>
+                  <input id="presetPromptEnabledInput" type="checkbox" checked />
+                </label>
+                <label class="field checkbox-field">
+                  <span>System prompt block</span>
+                  <input id="presetPromptSystemPromptInput" type="checkbox" checked />
+                </label>
+                <label class="field checkbox-field">
+                  <span>Marker block</span>
+                  <input id="presetPromptMarkerInput" type="checkbox" />
+                </label>
+                <label class="field checkbox-field">
+                  <span>Forbid overrides</span>
+                  <input id="presetPromptForbidOverridesInput" type="checkbox" />
+                </label>
+                <label class="field full-span">
+                  <span>Content</span>
+                  <textarea id="presetPromptContentInput" rows="6" placeholder="Prompt content"></textarea>
+                </label>
+              </div>
+              <div class="button-row">
+                <button id="presetPromptSaveBtn" class="primary" type="button">Save prompt</button>
+                <button id="presetPromptDeleteBtn" class="danger" type="button">Delete prompt</button>
+                <button id="presetPromptCloseBtn" class="secondary" type="button">Close</button>
+              </div>
+            </section>
+          </section>
+
+          <div class="button-row">
+            <button id="presetSaveBtn" class="primary">Save preset</button>
+            <button id="presetCancelBtn" class="secondary">Cancel</button>
+          </div>
+        </section>
+
+        <section id="presetList" class="entity-list"></section>
+      </section>
+
+      <section id="libraryView" class="view detail-view">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Library</p>
+            <h2>Reusable content</h2>
+          </div>
+        </div>
+
+        <div class="library-category-row" role="tablist" aria-label="Library sections">
+          <button class="library-category-chip active" type="button" data-library-panel="libraryLorebooksPanel">
+            <span class="library-chip-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              </svg>
+            </span>
+            <span>Lorebooks</span>
+          </button>
+          <button class="library-category-chip" type="button" data-library-panel="libraryScenarioPanel">
+            <span class="library-chip-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 4h6v6"></path>
+                <path d="M10 20H4v-6"></path>
+                <path d="M20 4l-7.5 7.5"></path>
+                <path d="M4 20l7.5-7.5"></path>
+              </svg>
+            </span>
+            <span>Scenario</span>
+          </button>
+          <button class="library-category-chip" type="button" data-library-panel="libraryPromptsPanel">
+            <span class="library-chip-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7 8h10"></path>
+                <path d="M7 12h8"></path>
+                <path d="M7 16h6"></path>
+                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+              </svg>
+            </span>
+            <span>Prompts</span>
+          </button>
+          <button class="library-category-chip" type="button" data-library-panel="libraryPicturesPanel">
+            <span class="library-chip-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                <circle cx="9" cy="10" r="1.8"></circle>
+                <path d="M21 16l-5-5-7 7"></path>
+              </svg>
+            </span>
+            <span>Pictures</span>
+          </button>
+        </div>
+
+        <section id="libraryLorebooksPanel" class="library-panel active">
+          <div class="toolbar lorebook-inline-toolbar">
+            <input id="lorebookSearchInput" type="search" placeholder="Search lorebooks" />
+            <button id="lorebookImportBtn" class="secondary" type="button">Import (SillyTavern)</button>
+            <button id="lorebookNewBtn" class="primary" type="button">New lorebook</button>
+          </div>
+
+          <input id="lorebookImportInput" type="file" accept="application/json,.json" multiple class="hidden" />
+
+          <section class="provider-form-card">
+            <div class="field-grid">
+              <label class="field">
+                <span>Scan depth (messages)</span>
+                <input id="lorebookScanDepthInput" type="number" min="1" max="64" step="1" />
+              </label>
+              <label class="field">
+                <span>Token budget (approx)</span>
+                <input id="lorebookTokenBudgetInput" type="number" min="64" max="8000" step="16" />
+              </label>
+              <label class="field checkbox-field">
+                <span>Recursive scanning</span>
+                <input id="lorebookRecursiveInput" type="checkbox" />
+              </label>
+            </div>
+            <div class="button-row inline-controls">
+              <button id="saveLorebookSettingsBtn" class="secondary" type="button">Save lore settings</button>
+              <span id="lorebookSettingsStatus" class="inline-status" aria-live="polite"></span>
+            </div>
+          </section>
+
+          <section id="lorebookList" class="entity-list"></section>
+        </section>
+
+        <section id="libraryScenarioPanel" class="library-panel hidden">
+          <article class="placeholder-card">
+            <p>Scenario library UI is ready for your next update.</p>
+          </article>
+        </section>
+
+        <section id="libraryPromptsPanel" class="library-panel hidden">
+          <article class="placeholder-card">
+            <p>Prompt snippets will live here.</p>
+          </article>
+        </section>
+
+        <section id="libraryPicturesPanel" class="library-panel hidden">
+          <article class="placeholder-card">
+            <p>Picture assets will appear here.</p>
+          </article>
+        </section>
+      </section>
+
+      <section id="lorebookEditorView" class="view detail-view">
+        <div class="section-header compact-gap">
+          <div>
+            <p class="eyebrow">Library · Lorebooks</p>
+            <h2>Lorebook editor</h2>
+          </div>
+          <div class="button-row">
+            <button id="lorebookEditorImportBtn" class="secondary" type="button">Import lorebook</button>
+            <button id="lorebookEditorBackBtn" class="secondary" type="button">Back to library</button>
+          </div>
+        </div>
+
+        <input id="lorebookEditorImportInput" type="file" accept="application/json,.json" class="hidden" />
+
+        <section class="provider-form-card">
+          <div class="field-grid">
+            <label class="field">
+              <span>Title</span>
+              <input id="lorebookNameInput" type="text" placeholder="My lorebook" />
+            </label>
+            <label class="field full-span">
+              <span>Description</span>
+              <textarea id="lorebookDescriptionInput" rows="3" placeholder="Optional description"></textarea>
+            </label>
+          </div>
+          <div class="button-row inline-controls">
+            <span id="lorebookEditorStatus" class="inline-status" aria-live="polite"></span>
+          </div>
+          <div class="button-row">
+            <button id="lorebookSaveBtn" class="primary" type="button">Save lorebook</button>
+            <button id="lorebookCancelBtn" class="secondary" type="button">Back to library</button>
+          </div>
+        </section>
+
+        <section class="provider-form-card">
+          <div class="toolbar lorebook-inline-toolbar">
+            <input id="lorebookEntrySearchInput" type="search" placeholder="Search entries" />
+            <button id="lorebookEntryNewBtn" class="primary" type="button">New entry</button>
+          </div>
+
+          <section id="lorebookEntryEditorCard" class="provider-form-card hidden popdown-editor">
+            <div class="field-grid">
+              <label class="field">
+                <span>Entry title</span>
+                <input id="lorebookEntryTitleInput" type="text" placeholder="Entry title" />
+              </label>
+              <label class="field">
+                <span>Keys (comma separated)</span>
+                <input id="lorebookEntryKeysInput" type="text" placeholder="dragon, wyrm" />
+              </label>
+              <label class="field full-span">
+                <span>Secondary keys (comma separated)</span>
+                <input id="lorebookEntrySecondaryKeysInput" type="text" placeholder="fire, wing" />
+              </label>
+              <label class="field full-span">
+                <span>Content</span>
+                <textarea id="lorebookEntryContentInput" rows="6" placeholder="Entry content"></textarea>
+              </label>
+              <label class="field">
+                <span>Priority</span>
+                <input id="lorebookEntryPriorityInput" type="number" min="0" step="1" value="100" />
+              </label>
+              <label class="field">
+                <span>Probability (%)</span>
+                <input id="lorebookEntryProbabilityInput" type="number" min="0" max="100" step="1" value="100" />
+              </label>
+              <label class="field checkbox-field">
+                <span>Enabled</span>
+                <input id="lorebookEntryEnabledInput" type="checkbox" checked />
+              </label>
+              <label class="field checkbox-field">
+                <span>Constant</span>
+                <input id="lorebookEntryConstantInput" type="checkbox" />
+              </label>
+              <label class="field checkbox-field">
+                <span>Case sensitive</span>
+                <input id="lorebookEntryCaseSensitiveInput" type="checkbox" />
+              </label>
+              <label class="field checkbox-field">
+                <span>Selective</span>
+                <input id="lorebookEntrySelectiveInput" type="checkbox" />
+              </label>
+              <label class="field">
+                <span>Selective logic</span>
+                <select id="lorebookEntrySelectiveLogicInput">
+                  <option value="AND">AND</option>
+                  <option value="OR">OR</option>
+                  <option value="NOT">NOT</option>
+                </select>
+              </label>
+            </div>
+            <div class="button-row">
+              <button id="lorebookEntrySaveBtn" class="primary" type="button">Save entry</button>
+              <button id="lorebookEntryDeleteBtn" class="danger" type="button">Delete entry</button>
+              <button id="lorebookEntryCancelBtn" class="secondary" type="button">Close</button>
+            </div>
+          </section>
+
+          <p class="entity-meta">Long press an entry to start drag mode, then move and release to reorder.</p>
+          <section id="lorebookEntryList" class="entity-list compact-entity-list"></section>
+        </section>
+      </section>
+
+      <section id="providersView" class="view detail-view">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">Providers</p>
+            <h2>Provider manager</h2>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <input id="providerSearchInput" type="search" placeholder="Search providers" />
+          <div class="toolbar-actions">
+            <button id="providerImportBtn" class="secondary">Import</button>
+            <button id="providerExportBtn" class="secondary">Export</button>
+            <button id="providerNewBtn" class="primary">New</button>
+          </div>
+        </div>
+
+        <input id="providerImportInput" type="file" accept="application/json,.json" class="hidden" />
+
+        <section id="providerFormCard" class="provider-form-card hidden">
+          <div class="field-grid">
+            <label class="field">
+              <span>Name</span>
+              <input id="providerNameInput" type="text" placeholder="My Provider" />
+            </label>
+            <label class="field">
+              <span>Base URL</span>
+              <input id="providerUrlInput" type="url" placeholder="https://example.com/v1" />
+            </label>
+            <label class="field">
+              <span>API key</span>
+              <input id="providerApiKeyInput" type="password" placeholder="sk-..." />
+            </label>
+            <label class="field">
+              <span>Thinking start tag</span>
+              <input id="providerThinkStartInput" type="text" placeholder="&lt;thinking&gt;" />
+            </label>
+            <label class="field">
+              <span>Thinking end tag</span>
+              <input id="providerThinkEndInput" type="text" placeholder="&lt;/thinking&gt;" />
+            </label>
+            <label class="field checkbox-field">
+              <span>Show thinking summaries</span>
+              <input id="providerShowThinkingInput" type="checkbox" checked />
+            </label>
+            <label class="field checkbox-field">
+              <span>Include thinking in prompt</span>
+              <input id="providerIncludeThinkingInput" type="checkbox" />
+            </label>
+          </div>
+          <div class="button-row inline-controls">
+            <button id="providerFetchModelsBtn" class="secondary" type="button">Fetch models</button>
+            <span id="providerFetchModelsStatus" class="inline-status" aria-live="polite"></span>
+          </div>
+          <div class="button-row">
+            <button id="providerSaveBtn" class="primary">Save provider</button>
+            <button id="providerCancelBtn" class="secondary">Cancel</button>
+          </div>
+        </section>
+
+        <section id="providerList" class="entity-list"></section>
+      </section>
+
+      <section id="chatsView" class="view detail-view chat-view-shell">
+        <aside id="chatDrawer" class="chat-drawer hidden">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Current chat</p>
+              <input id="chatTitleInput" class="drawer-title-input" type="text" placeholder="Chat name" />
+            </div>
+            <button id="closeChatDrawerBtn" class="icon-button" aria-label="Close chat menu">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                <path d="M6 6l12 12"></path>
+                <path d="M18 6L6 18"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="drawer-group">
+            <button class="drawer-link" data-drawer-view="homeView">Homepage</button>
+            <button class="drawer-link" data-drawer-view="presetsView">Presets</button>
+            <button class="drawer-link" data-drawer-view="providersView">Providers</button>
+            <button class="drawer-link" data-drawer-view="libraryView">Library</button>
+          </div>
+
+          <div class="drawer-group drawer-copy">
+            <label class="field compact-field">
+              <span>Model</span>
+              <select id="modelSelect"></select>
+            </label>
+            <p id="currentPresetLabel">Current preset: Default preset</p>
+            <button id="applyOtherPresetBtn" class="secondary" type="button">Choose preset</button>
+            <section id="presetPicker" class="drawer-picker hidden">
+              <div id="drawerPresetList" class="entity-list compact-entity-list"></div>
+            </section>
+            <section id="drawerPresetEditor" class="provider-form-card hidden">
+              <label class="field compact-field">
+                <span>Preset name</span>
+                <input id="drawerPresetNameInput" type="text" />
+              </label>
+              <label class="field compact-field">
+                <span>Temperature</span>
+                <input id="drawerPresetTempInput" type="number" min="0" max="2" step="0.1" />
+              </label>
+              <label class="field compact-field">
+                <span>System prompt</span>
+                <textarea id="drawerPresetSystemInput" rows="3"></textarea>
+              </label>
+              <div class="button-row">
+                <button id="drawerPresetSaveBtn" class="primary" type="button">Save preset</button>
+                <button id="drawerPresetCancelBtn" class="secondary" type="button">Cancel</button>
+              </div>
+            </section>
+            <p id="currentProviderLabel">Current provider: None selected</p>
+            <button id="applyOtherProviderBtn" class="secondary" type="button">Choose provider</button>
+            <section id="providerPicker" class="drawer-picker hidden">
+              <div id="drawerProviderList" class="entity-list compact-entity-list"></div>
+            </section>
+            <section id="drawerProviderEditor" class="provider-form-card hidden">
+              <label class="field compact-field">
+                <span>Provider name</span>
+                <input id="drawerProviderNameInput" type="text" />
+              </label>
+              <label class="field compact-field">
+                <span>Base URL</span>
+                <input id="drawerProviderUrlInput" type="url" />
+              </label>
+              <label class="field compact-field">
+                <span>API key</span>
+                <input id="drawerProviderApiKeyInput" type="password" />
+              </label>
+              <label class="field compact-field">
+                <span>Thinking start tag</span>
+                <input id="drawerProviderThinkStartInput" type="text" placeholder="&lt;thinking&gt;" />
+              </label>
+              <label class="field compact-field">
+                <span>Thinking end tag</span>
+                <input id="drawerProviderThinkEndInput" type="text" placeholder="&lt;/thinking&gt;" />
+              </label>
+              <label class="field checkbox-field compact-field">
+                <span>Show thinking summaries</span>
+                <input id="drawerProviderShowThinkingInput" type="checkbox" checked />
+              </label>
+              <label class="field checkbox-field compact-field">
+                <span>Include thinking in prompt</span>
+                <input id="drawerProviderIncludeThinkingInput" type="checkbox" />
+              </label>
+              <div class="button-row">
+                <button id="drawerProviderSaveBtn" class="primary" type="button">Save provider</button>
+                <button id="drawerProviderCancelBtn" class="secondary" type="button">Cancel</button>
+              </div>
+            </section>
+            <label class="field compact-field">
+              <span>Lorebook search</span>
+              <input id="drawerLorebookSearchInput" type="search" placeholder="Search lorebooks" />
+            </label>
+            <p id="currentLorebookLabel">Lorebooks in this chat: none</p>
+            <section id="drawerLorebookList" class="entity-list compact-entity-list"></section>
+            <div class="field-grid">
+              <label class="field compact-field">
+                <span>Lore scan depth</span>
+                <input id="drawerLorebookScanDepthInput" type="number" min="1" max="64" step="1" />
+              </label>
+              <label class="field compact-field">
+                <span>Lore token budget</span>
+                <input id="drawerLorebookTokenBudgetInput" type="number" min="64" max="8000" step="16" />
+              </label>
+              <label class="field checkbox-field compact-field">
+                <span>Recursive scanning</span>
+                <input id="drawerLorebookRecursiveInput" type="checkbox" />
+              </label>
+            </div>
+            <div class="button-row inline-controls">
+              <button id="saveDrawerLorebookSettingsBtn" class="secondary" type="button">Save lore settings for this chat</button>
+              <span id="drawerLorebookStatus" class="inline-status" aria-live="polite"></span>
+            </div>
+          </div>
+        </aside>
+
+        <div id="recentChats" class="entity-list recent-chats-inline"></div>
+        <section id="messages" class="messages"></section>
+
+        <div id="chatEmptyState" class="placeholder-card">
+          <p>Open an existing chat or start a new one to begin messaging.</p>
+        </div>
+
+        <form id="composer" class="composer hidden">
+          <button type="button" id="impersonateToggleBtn" class="icon-button composer-icon-button" aria-label="Choose who to speak as">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
+              <circle cx="10" cy="7" r="4"></circle>
+              <path d="M21 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </button>
+          <div class="composer-center">
+            <select id="impersonateSelect" aria-label="Impersonate character" class="hidden">
+              <option value="">Speak as yourself</option>
+            </select>
+            <textarea id="messageInput" rows="1" placeholder="Type a message here"></textarea>
+          </div>
+          <div class="composer-actions">
+            <button type="button" id="stopBtn" class="secondary hidden">Stop</button>
+            <button type="button" id="sendBtn" class="primary composer-send-button">Send</button>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <div id="fontManagerBackdrop" class="modal-backdrop hidden">
+    <section id="fontManagerCard" class="provider-form-card modal-card" role="dialog" aria-modal="true" aria-labelledby="fontManagerTitle">
+      <div class="panel-header">
+        <div>
+          <p class="eyebrow">Font manager</p>
+          <h3 id="fontManagerTitle">App text font</h3>
+        </div>
+        <button id="closeFontManagerBtn" class="secondary" type="button">Close</button>
+      </div>
+      <div class="field-grid">
+        <div class="field full-span">
+          <span>Option 1: Add from your files</span>
+          <div class="button-row">
+            <button id="browseFontFileBtn" class="secondary" type="button">Choose font file</button>
+          </div>
+          <input id="fontFileInput" type="file" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" class="hidden" />
+          <small class="entity-meta">Supported files: .ttf, .otf, .woff, .woff2</small>
+        </div>
+        <label class="field full-span">
+          <span>Option 2: Add from Google Fonts (https://fonts.google.com/)</span>
+          <input id="googleFontSearchInput" type="search" placeholder="Search font name (e.g. Inter, Poppins, Nunito)" />
+        </label>
+      </div>
+      <p id="uploadedFontMeta" class="entity-meta">Using system default font.</p>
+      <div class="button-row">
+        <button id="addGoogleFontBtn" class="primary" type="button">Add from Google Fonts</button>
+        <button id="resetAppFontBtn" class="danger" type="button">Reset to default font</button>
+      </div>
+      <p id="fontManagerStatus" class="inline-status" aria-live="polite"></p>
+    </section>
+  </div>
+
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <template id="messageTemplate">
+    <article class="message-row">
+      <div class="message-avatar"></div>
+      <article class="message">
+        <button type="button" class="message-menu-trigger" aria-label="Message actions">⋯</button>
+        <div class="message-role"></div>
+        <button type="button" class="thinking-chip hidden" aria-label="Show thinking summary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9.5 18h5"></path>
+            <path d="M10 22h4"></path>
+            <path d="M8.6 14.4C7.6 13.5 7 12.2 7 10.8a5 5 0 1 1 10 0c0 1.4-.6 2.7-1.6 3.6-.7.7-1.1 1.4-1.2 2.2h-3.4c-.1-.8-.5-1.5-1.2-2.2z"></path>
+          </svg>
+          <span>Thinking</span>
+        </button>
+        <div class="thinking-summary hidden"></div>
+        <div class="message-content"></div>
+        <div class="message-swipe-controls hidden">
+          <button type="button" class="message-swipe-btn message-swipe-left" aria-label="Previous greeting">&lt;</button>
+          <div class="message-swipe-counter">1/1</div>
+          <button type="button" class="message-swipe-btn message-swipe-right" aria-label="Next greeting">&gt;</button>
+        </div>
+      </article>
+    </article>
+  </template>
+
+  <section id="messageActionPopup" class="message-action-popup hidden">
+    <article id="messageActionCard" class="provider-form-card message-action-card">
+      <h3>Message actions</h3>
+      <div class="button-row">
+        <button id="messageActionEditBtn" class="secondary" type="button">Edit</button>
+        <button id="messageActionDeleteBtn" class="danger" type="button">Delete</button>
+        <button id="messageActionRegenerateBtn" class="secondary" type="button">Regenerate</button>
+        <button id="messageActionForkBtn" class="secondary" type="button">Fork</button>
+      </div>
+      <div id="messageDeleteOptions" class="hidden">
+        <p id="messageDeletePromptText" class="entity-meta"></p>
+        <div class="button-row">
+          <button id="deleteOneMessageBtn" class="danger" type="button">Delete this message</button>
+          <button id="deleteFromHereBtn" class="danger" type="button">Delete this and below</button>
+        </div>
+      </div>
+      <label class="field hidden" id="messageEditFieldWrap">
+        <span>Edit message</span>
+        <textarea id="messageEditInput" rows="5"></textarea>
+      </label>
+      <div class="button-row">
+        <button id="messageActionConfirmBtn" class="primary hidden" type="button">Save</button>
+        <button id="messageActionCloseBtn" class="secondary" type="button">Close</button>
+      </div>
+    </article>
+  </section>
+
+  <script src="./app.js"></script>
+</body>
+</html>

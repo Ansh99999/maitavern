@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Runtime / local data
+user
+.server.log
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# OS/editor noise
+.DS_Store
+Thumbs.db

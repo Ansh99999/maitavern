@@ -1,0 +1,24 @@
+{
+  "name": "maitavern",
+  "version": "1.0.0",
+  "description": "A minimalist, mobile-friendly tavern UI for OpenAI-compatible APIs with early support for characters, providers, presets, assets, and recent chats.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ansh99999/maitavern.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Ansh99999/maitavern/issues"
+  },
+  "homepage": "https://github.com/Ansh99999/maitavern#readme",
+  "dependencies": {
+    "jsdom": "^24.1.3"
+  }
+}

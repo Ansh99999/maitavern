@@ -1,0 +1,226 @@
+# SillyTavern macros found (research list)
+
+## Core / Utility
+- {{space}}
+- {{newline}}
+- {{noop}}
+- {{trim}}
+- {{if}} ... {{else}} ... {{/if}}
+- {{else}}
+- {{input}}
+- {{reverse}}
+- {{//}} (comment macro)
+- {{comment}} (alias)
+- {{banned}}
+- {{outlet}}
+
+## Random
+- {{roll}}
+- {{random}}
+- {{pick}}
+
+## State / Limits / Runtime
+- {{maxPrompt}} (alias: {{maxPromptTokens}})
+- {{maxContext}} (alias: {{maxContextTokens}})
+- {{maxResponse}} (alias: {{maxResponseTokens}})
+- {{model}}
+- {{isMobile}}
+- {{lastGenerationType}}
+- {{hasExtension}}
+
+## Names / Participants
+- {{user}}
+- {{char}}
+- {{group}} (hidden alias: {{charIfNotGroup}})
+- {{groupNotMuted}}
+- {{notChar}}
+
+## Character fields
+- {{charPrompt}}
+- {{charInstruction}}
+- {{charDescription}} (alias: {{description}})
+- {{charPersonality}} (alias: {{personality}})
+- {{charScenario}} (alias: {{scenario}})
+- {{persona}}
+- {{mesExamplesRaw}}
+- {{mesExamples}}
+- {{charDepthPrompt}}
+- {{charCreatorNotes}} (alias: {{creatorNotes}})
+- {{charFirstMessage}} (alias: {{greeting}})
+- {{charVersion}} (aliases: {{version}}, {{char_version}})
+- {{original}}
+
+## Chat / History / Swipes
+- {{lastMessage}}
+- {{lastMessageId}}
+- {{lastUserMessage}}
+- {{lastCharMessage}}
+- {{firstIncludedMessageId}}
+- {{firstDisplayedMessageId}}
+- {{lastSwipeId}}
+- {{currentSwipeId}}
+- {{allChatRange}}
+
+## Time / Date
+- {{time}}
+- {{date}}
+- {{weekday}}
+- {{isotime}}
+- {{isodate}}
+- {{datetimeformat}}
+- {{idleDuration}} (alias: {{idle_duration}})
+- {{timeDiff}}
+
+## Variables (local)
+- {{setvar}}
+- {{addvar}}
+- {{incvar}}
+- {{decvar}}
+- {{getvar}}
+- {{hasvar}} (alias: {{varexists}})
+- {{deletevar}} (alias: {{flushvar}})
+
+## Variables (global)
+- {{setglobalvar}}
+- {{addglobalvar}}
+- {{incglobalvar}}
+- {{decglobalvar}}
+- {{getglobalvar}}
+- {{hasglobalvar}} (alias: {{globalvarexists}})
+- {{deleteglobalvar}} (alias: {{flushglobalvar}})
+
+## Instruct / Prompt template macros
+- {{instructStoryStringPrefix}}
+- {{instructStoryStringSuffix}}
+- {{instructUserPrefix}} (alias: {{instructInput}})
+- {{instructUserSuffix}}
+- {{instructAssistantPrefix}} (alias: {{instructOutput}})
+- {{instructAssistantSuffix}} (alias: {{instructSeparator}})
+- {{instructSystemPrefix}}
+- {{instructSystemSuffix}}
+- {{instructFirstAssistantPrefix}} (alias: {{instructFirstOutputPrefix}})
+- {{instructLastAssistantPrefix}} (alias: {{instructLastOutputPrefix}})
+- {{instructStop}}
+- {{instructUserFiller}}
+- {{instructSystemInstructionPrefix}}
+- {{instructFirstUserPrefix}} (alias: {{instructFirstInput}})
+- {{instructLastUserPrefix}} (alias: {{instructLastInput}})
+- {{defaultSystemPrompt}} (aliases: {{instructSystem}}, {{instructSystemPrompt}})
+- {{systemPrompt}}
+- {{exampleSeparator}} (alias: {{chatSeparator}})
+- {{chatStart}}
+
+## Legacy placeholder-style tokens referenced in macro handling
+- <USER>
+- <BOT>
+- <CHAR>
+
+---
+
+# Macro Compatibility Implementation Plan (Checklist)
+
+## Goal
+Bring MaiTavern macro behavior closer to SillyTavern in a safe, incremental way, while preserving existing chats/presets and avoiding regressions.
+
+## Current Status Snapshot
+- [x] Basic macro expansion exists in `app.js` (`applyMacrosToText`, template integration).
+- [x] Local/global macro variable persistence exists (`macroChatVars`, `macroGlobalVars`).
+- [~] Core/time/random/chat variable macros are partially implemented.
+- [ ] Compatibility hardening, alias completion, and correctness testing.
+
+## Phase 1 — Stabilize Macro Engine Core
+- [ ] Define a strict macro pass order:
+  - [ ] scoped if/else blocks
+  - [ ] side-effect macros (set/add/inc/dec/delete)
+  - [ ] value-returning macros (get/time/chat/name/instruct)
+  - [ ] cleanup pass (`trim`, comments, whitespace normalization)
+- [ ] Add recursion guard and max-pass cap with warning logs.
+- [ ] Add consistent argument parsing for `::` separators and escaped delimiters.
+- [ ] Ensure idempotent behavior where expected (`pick` deterministic, `random` non-deterministic).
+
+**Acceptance criteria**
+- [ ] No infinite loops.
+- [ ] Nested macro strings resolve deterministically.
+- [ ] Invalid macros fail gracefully to empty string.
+
+## Phase 2 — Complete SillyTavern Alias/Surface Coverage
+- [ ] Implement missing aliases and runtime fields listed in `features.txt`:
+  - [ ] state/runtime: `isMobile`, `lastGenerationType`, `hasExtension`
+  - [ ] chat/swipe placeholders: `firstIncludedMessageId`, `firstDisplayedMessageId`, `lastSwipeId`, `currentSwipeId`
+  - [ ] character aliases: `creatorNotes`, `version`, `char_version`
+- [ ] Ensure prompt/instruct aliases map correctly:
+  - [ ] `instructInput`, `instructOutput`, `instructSeparator`, `chatSeparator`, etc.
+- [ ] Add no-op stubs where MaiTavern has no equivalent yet (explicit + documented).
+
+**Acceptance criteria**
+- [ ] Every macro in `features.txt` is one of: implemented / alias-mapped / documented no-op.
+
+## Phase 3 — Instruct + Preset Macro Fidelity
+- [ ] Bind instruct macros to active preset instruct fields at render time.
+- [ ] Make `systemPrompt`, `defaultSystemPrompt`, `chatStart`, `exampleSeparator` resolve from active preset with sane fallback.
+- [ ] Ensure macro replacement occurs in:
+  - [ ] context template
+  - [ ] prompt blocks
+  - [ ] instruct transcript sequences
+  - [ ] greeting swipes
+  - [ ] user input
+
+**Acceptance criteria**
+- [ ] Same preset fields produce same rendered transcript sections across sessions.
+
+## Phase 4 — Variable Semantics + Scope Correctness
+- [ ] Enforce local vars per chat (`macroChatVars[currentChatId]`), globals app-wide.
+- [ ] Confirm var macros behavior parity:
+  - [ ] numeric vs string add logic
+  - [ ] `has*` returns `"true"/"false"`
+  - [ ] delete/flush aliases equivalent
+- [ ] Add migration-safe initialization for older saved states.
+
+**Acceptance criteria**
+- [ ] Switching chats isolates local vars.
+- [ ] Globals persist and are shared intentionally.
+
+## Phase 5 — QA Matrix + Regression Harness
+- [ ] Create manual test matrix for each macro category:
+  - [ ] core
+  - [ ] random
+  - [ ] time
+  - [ ] chat
+  - [ ] names
+  - [ ] variables
+  - [ ] instruct
+- [ ] Add fixture prompts with expected outputs.
+- [ ] Validate import/export roundtrip for state including macro vars.
+- [ ] Add smoke tests for:
+  - [ ] send pipeline
+  - [ ] preset rendering
+  - [ ] greeting generation
+
+**Acceptance criteria**
+- [ ] All matrix cases pass.
+- [ ] No breakage in existing normal chat flow.
+
+## Phase 6 — UX + Debug Tooling
+- [ ] Add optional “Macro Preview” pane in preset editor/chat drawer.
+- [ ] Add toggle for “strict macro mode” (unknown macros warning).
+- [ ] Add lightweight status/error surfacing for malformed macro expressions.
+
+**Acceptance criteria**
+- [ ] User can inspect resolved prompt safely before send.
+
+## Backward Compatibility & Migration Notes
+- [ ] Do not remove existing macro tokens already in user prompts.
+- [ ] Preserve current saved state shape; only additive keys.
+- [ ] Unknown macros degrade to empty string unless strict mode enabled.
+- [ ] Keep deterministic `pick` stable for existing chats where possible.
+
+## Rollback Strategy
+- [ ] Gate new behavior behind a `macroEngineVersion` flag.
+- [ ] Keep legacy simple replacement path for emergency fallback.
+- [ ] If regression appears, switch to legacy path and keep persisted data untouched.
+
+## Milestone Deliverables
+- [ ] M1: Stable core + guards.
+- [ ] M2: Alias completeness against `features.txt`.
+- [ ] M3: Instruct fidelity.
+- [ ] M4: QA pass + preview tooling.
