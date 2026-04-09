@@ -37,14 +37,7 @@ jobs:
           MAITAVERN_KEY_ALIAS: ${{ secrets.MAITAVERN_KEY_ALIAS }}
         run: |
           if [ -n "${MAITAVERN_KEYSTORE_BASE64}" ]; then
-            python - << 'PY'
-import base64, os, pathlib
-b64 = os.environ.get("MAITAVERN_KEYSTORE_BASE64", "")
-b64 = "".join(b64.split())
-raw = base64.b64decode(b64, validate=True)
-pathlib.Path("android-ci/maitavern-release.keystore").write_bytes(raw)
-print("Release keystore restored.")
-PY
+            python -c 'import base64, os, pathlib, re; b64=os.environ.get("MAITAVERN_KEYSTORE_BASE64", ""); b64=re.sub(r"\s+", "", b64); b64 += "=" * ((4 - len(b64) % 4) % 4); pathlib.Path("android-ci/maitavern-release.keystore").write_bytes(base64.b64decode(b64)); print("Release keystore restored.")'
 
             if [ -n "${MAITAVERN_KEYSTORE_PASSWORD}" ] && [ -n "${MAITAVERN_KEY_ALIAS}" ]; then
               keytool -list \
