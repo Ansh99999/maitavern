@@ -72,6 +72,7 @@ const defaults = {
   recentChats: [],
   currentChatId: "",
   currentChatTitle: "New chat",
+  promptLogs: [],
   macroGlobalVars: {},
   macroChatVars: {},
   customization: {
@@ -116,6 +117,9 @@ let lorebookEntryLongPress = {
   scrollContainer: null,
 };
 let lorebookEntrySearchQuery = "";
+let drawerPresetEditorDraft = null;
+let drawerPresetPromptDragIndex = -1;
+let drawerSelectedLogId = "";
 
 const els = {
   welcomeScreen: document.getElementById("welcomeScreen"),
@@ -291,13 +295,16 @@ const els = {
   drawerPresetList: document.getElementById("drawerPresetList"),
   drawerProviderList: document.getElementById("drawerProviderList"),
   currentPresetLabel: document.getElementById("currentPresetLabel"),
+  currentPresetSummaryBtn: document.getElementById("currentPresetSummaryBtn"),
   currentProviderLabel: document.getElementById("currentProviderLabel"),
   drawerPresetDetails: document.getElementById("drawerPresetDetails"),
   drawerProviderDetails: document.getElementById("drawerProviderDetails"),
   drawerPresetEditor: document.getElementById("drawerPresetEditor"),
   drawerPresetNameInput: document.getElementById("drawerPresetNameInput"),
   drawerPresetTempInput: document.getElementById("drawerPresetTempInput"),
+  drawerPresetTopPInput: document.getElementById("drawerPresetTopPInput"),
   drawerPresetSystemInput: document.getElementById("drawerPresetSystemInput"),
+  drawerPresetPromptList: document.getElementById("drawerPresetPromptList"),
   drawerPresetSaveBtn: document.getElementById("drawerPresetSaveBtn"),
   drawerPresetCancelBtn: document.getElementById("drawerPresetCancelBtn"),
   drawerProviderEditor: document.getElementById("drawerProviderEditor"),
@@ -310,6 +317,11 @@ const els = {
   drawerProviderIncludeThinkingInput: document.getElementById("drawerProviderIncludeThinkingInput"),
   drawerProviderSaveBtn: document.getElementById("drawerProviderSaveBtn"),
   drawerProviderCancelBtn: document.getElementById("drawerProviderCancelBtn"),
+  drawerLogList: document.getElementById("drawerLogList"),
+  drawerLogTerminal: document.getElementById("drawerLogTerminal"),
+  drawerLogMeta: document.getElementById("drawerLogMeta"),
+  drawerLogCopyBtn: document.getElementById("drawerLogCopyBtn"),
+  drawerLogClearBtn: document.getElementById("drawerLogClearBtn"),
   drawerLorebookImportBtn: document.getElementById("drawerLorebookImportBtn"),
   drawerLorebookSelect: document.getElementById("drawerLorebookSelect"),
   drawerLorebookEntries: document.getElementById("drawerLorebookEntries"),
@@ -431,6 +443,19 @@ function ensureCollections() {
   state.currentChatId = typeof state.currentChatId === "string" ? state.currentChatId : "";
   state.currentChatTitle = typeof state.currentChatTitle === "string" && state.currentChatTitle.trim() ? state.currentChatTitle : "New chat";
   state.lastGenerationType = typeof state.lastGenerationType === "string" ? state.lastGenerationType : "";
+  state.promptLogs = Array.isArray(state.promptLogs)
+    ? state.promptLogs.filter((entry) => entry && typeof entry === "object")
+      .slice(0, 5)
+      .map((entry) => ({
+        id: typeof entry.id === "string" ? entry.id : crypto.randomUUID(),
+        createdAt: typeof entry.createdAt === "string" ? entry.createdAt : new Date().toISOString(),
+        model: typeof entry.model === "string" ? entry.model : "",
+        endpoint: typeof entry.endpoint === "string" ? entry.endpoint : "",
+        chatId: typeof entry.chatId === "string" ? entry.chatId : "",
+        chatTitle: typeof entry.chatTitle === "string" ? entry.chatTitle : "",
+        payload: entry.payload && typeof entry.payload === "object" ? JSON.parse(JSON.stringify(entry.payload)) : {},
+      }))
+    : [];
   state.customization = {
     ...structuredClone(defaults.customization),
     ...(state.customization && typeof state.customization === "object" ? state.customization : {}),
@@ -585,17 +610,8 @@ function bindEvents() {
     drawerLorebookSelectedId = els.drawerLorebookSelect?.value || "";
     renderDrawerLorebooks();
   });
-  els.applyOtherPresetBtn?.addEventListener("click", () => {
-    const shouldShow = els.presetPicker?.classList.contains("hidden");
-    els.presetPicker?.classList.toggle("hidden", !shouldShow);
-    els.providerPicker?.classList.add("hidden");
-    hideDrawerProviderEditor();
-  });
-  els.applyOtherProviderBtn?.addEventListener("click", () => {
-    const shouldShow = els.providerPicker?.classList.contains("hidden");
-    els.providerPicker?.classList.toggle("hidden", !shouldShow);
-    els.presetPicker?.classList.add("hidden");
-    hideDrawerPresetEditor();
+  els.currentPresetSummaryBtn?.addEventListener("click", () => {
+    openDrawerPanel("preset-editor");
   });
   els.chatTitleInput?.addEventListener("input", onChatTitleInput);
   els.impersonateToggleBtn?.addEventListener("click", toggleImpersonationPicker);
@@ -640,6 +656,8 @@ function bindEvents() {
   els.drawerPresetCancelBtn?.addEventListener("click", hideDrawerPresetEditor);
   els.drawerProviderSaveBtn?.addEventListener("click", saveDrawerProviderEdits);
   els.drawerProviderCancelBtn?.addEventListener("click", hideDrawerProviderEditor);
+  els.drawerLogCopyBtn?.addEventListener("click", copySelectedLogToClipboard);
+  els.drawerLogClearBtn?.addEventListener("click", clearPromptLogs);
 
   els.messageActionCloseBtn?.addEventListener("click", closeMessageActionPopup);
   els.messageActionPopup?.addEventListener("click", (event) => {
@@ -942,6 +960,133 @@ function getActiveProvider() {
   return state.providers.find((item) => item.id === state.activeProviderId) || null;
 }
 
+function appendPromptLogEntry({ payload = {}, mode = "standard" } = {}) {
+  const endpoint = state.endpoint ? normalizeEndpoint(state.endpoint) : "";
+  const entry = {
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+    mode,
+    model: String(payload?.model || state.selectedModel || ""),
+    endpoint,
+    chatId: state.currentChatId || "",
+    chatTitle: state.currentChatTitle || "",
+    payload: payload && typeof payload === "object" ? JSON.parse(JSON.stringify(payload)) : {},
+  };
+
+  state.promptLogs.unshift(entry);
+  state.promptLogs = state.promptLogs.slice(0, 5);
+
+  if (!drawerSelectedLogId || !state.promptLogs.some((log) => log.id === drawerSelectedLogId)) {
+    drawerSelectedLogId = entry.id;
+  }
+
+  if (els.chatDrawer?.dataset?.panel === "log") {
+    renderDrawerLogs();
+  }
+}
+
+function getSelectedPromptLog() {
+  if (!Array.isArray(state.promptLogs) || !state.promptLogs.length) return null;
+  return state.promptLogs.find((entry) => entry.id === drawerSelectedLogId) || state.promptLogs[0] || null;
+}
+
+function formatPromptLogTerminalEntry(entry) {
+  if (!entry) return "";
+  const lines = [
+    `$ maitavern prompt-log --id ${entry.id}`,
+    `$ created_at: ${entry.createdAt}`,
+    `$ mode: ${entry.mode || "standard"}`,
+    `$ endpoint: ${entry.endpoint || "(not set)"}`,
+    `$ model: ${entry.model || "(unknown)"}`,
+    `$ chat: ${entry.chatTitle || "New chat"}${entry.chatId ? ` (${entry.chatId})` : ""}`,
+    "$ payload:",
+    JSON.stringify(entry.payload || {}, null, 2),
+  ];
+  return lines.join("\n");
+}
+
+function renderDrawerLogs() {
+  if (!els.drawerLogList || !els.drawerLogTerminal) return;
+
+  const logs = Array.isArray(state.promptLogs) ? state.promptLogs : [];
+  if (!drawerSelectedLogId || !logs.some((entry) => entry.id === drawerSelectedLogId)) {
+    drawerSelectedLogId = logs[0]?.id || "";
+  }
+
+  els.drawerLogList.innerHTML = "";
+
+  if (!logs.length) {
+    const empty = document.createElement("article");
+    empty.className = "entity-card";
+    empty.innerHTML = `<div class="entity-meta">No prompt logs yet. Send a message to capture request payloads.</div>`;
+    els.drawerLogList.appendChild(empty);
+    if (els.drawerLogMeta) els.drawerLogMeta.textContent = "Logs: 0/5";
+    els.drawerLogTerminal.textContent = "$ waiting for prompt logs...";
+    return;
+  }
+
+  logs.forEach((entry, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `drawer-choice${entry.id === drawerSelectedLogId ? " active" : ""}`;
+    const timeLabel = new Date(entry.createdAt || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    button.innerHTML = `
+      <strong>#${logs.length - index} • ${escapeHtml(entry.model || "model")}</strong>
+      <small>${escapeHtml(timeLabel)} • ${escapeHtml(entry.mode || "standard")}</small>
+    `;
+    button.addEventListener("click", () => {
+      drawerSelectedLogId = entry.id;
+      renderDrawerLogs();
+    });
+    els.drawerLogList.appendChild(button);
+  });
+
+  const selected = getSelectedPromptLog();
+  if (els.drawerLogMeta) {
+    els.drawerLogMeta.textContent = selected
+      ? `Logs: ${logs.length}/5 • Showing ${selected.model || "unknown model"}`
+      : `Logs: ${logs.length}/5`;
+  }
+  els.drawerLogTerminal.textContent = formatPromptLogTerminalEntry(selected);
+}
+
+async function copySelectedLogToClipboard() {
+  const selected = getSelectedPromptLog();
+  if (!selected) {
+    showToast("No log selected", "error");
+    return;
+  }
+
+  const text = formatPromptLogTerminalEntry(selected);
+
+  try {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const helper = document.createElement("textarea");
+      helper.value = text;
+      helper.style.position = "fixed";
+      helper.style.opacity = "0";
+      document.body.appendChild(helper);
+      helper.focus();
+      helper.select();
+      document.execCommand("copy");
+      helper.remove();
+    }
+    showToast("Log copied", "success");
+  } catch {
+    showToast("Could not copy log", "error");
+  }
+}
+
+function clearPromptLogs() {
+  state.promptLogs = [];
+  drawerSelectedLogId = "";
+  persistState();
+  renderDrawerLogs();
+  showToast("Prompt logs cleared", "success");
+}
+
 async function generateAssistantReply({ requestMessages, assistantMessage }) {
   setBusy(true);
   setStatus(`Calling ${state.selectedModel}...`);
@@ -960,9 +1105,19 @@ async function generateAssistantReply({ requestMessages, assistantMessage }) {
     }
 
     const preset = getActivePreset();
+    const messagesForRequest = buildApiMessages(requestMessages);
+    const messagesForLog = buildApiMessages(requestMessages, { limitConversationMessages: 5 });
+
     const basePayload = {
       model: state.selectedModel,
-      messages: buildApiMessages(requestMessages),
+      messages: messagesForRequest,
+      stream: Boolean(preset?.stream),
+      ...extraBody,
+    };
+
+    const basePayloadForLog = {
+      model: state.selectedModel,
+      messages: messagesForLog,
       stream: Boolean(preset?.stream),
       ...extraBody,
     };
@@ -977,6 +1132,18 @@ async function generateAssistantReply({ requestMessages, assistantMessage }) {
         : {}),
     };
 
+    const standardPayloadForLog = {
+      ...basePayloadForLog,
+      temperature: preset.temperature ?? 0.7,
+      top_p: preset.topP ?? 1,
+      max_tokens: preset.maxTokens ?? 300,
+      ...(shouldApplyInstructPreset(preset) && preset.instruct?.stopSequence
+        ? { stop: [preset.instruct.stopSequence] }
+        : {}),
+    };
+
+    appendPromptLogEntry({ payload: standardPayloadForLog, mode: "standard" });
+
     let data = await requestChatCompletion({ headers, payload: standardPayload, signal: currentController.signal });
     let text = extractAssistantText(data);
 
@@ -988,6 +1155,14 @@ async function generateAssistantReply({ requestMessages, assistantMessage }) {
           ? { stop: [preset.instruct.stopSequence] }
           : {}),
       };
+      const compatPayloadForLog = {
+        ...basePayloadForLog,
+        max_completion_tokens: preset.maxTokens ?? 300,
+        ...(shouldApplyInstructPreset(preset) && preset.instruct?.stopSequence
+          ? { stop: [preset.instruct.stopSequence] }
+          : {}),
+      };
+      appendPromptLogEntry({ payload: compatPayloadForLog, mode: "compat" });
       data = await requestChatCompletion({ headers, payload: compatPayload, signal: currentController.signal });
       text = extractAssistantText(data);
     }
@@ -1026,12 +1201,13 @@ function stopRequest() {
   currentController?.abort();
 }
 
-function buildApiMessages(messages) {
+function buildApiMessages(messages, options = {}) {
   const preset = getActivePreset();
   const currentCharacter = getCurrentChatCharacter();
+  const limitConversationMessages = Number(options?.limitConversationMessages);
 
   const activeProvider = getActiveProvider();
-  const filteredMessages = messages
+  let filteredMessages = messages
     .filter((msg) => msg.role === "user" || msg.role === "assistant")
     .map((msg) => {
       if (activeProvider?.includeThinkingInPrompt && msg.thinkingSummary) {
@@ -1042,6 +1218,10 @@ function buildApiMessages(messages) {
       }
       return msg;
     });
+
+  if (Number.isFinite(limitConversationMessages) && limitConversationMessages > 0) {
+    filteredMessages = filteredMessages.slice(-limitConversationMessages);
+  }
 
   const loreContext = resolveLorebookPromptContext({ messages: filteredMessages, character: currentCharacter });
   const systemPrompt = buildPresetSystemPrompt({ preset, character: currentCharacter, loreContext });
@@ -3907,7 +4087,6 @@ function usePreset(presetId) {
   state.activePresetId = preset.id;
   persistState();
   renderDrawerState();
-  els.presetPicker?.classList.add("hidden");
   setStatus(`Using preset ${preset.name}`);
 }
 
@@ -3929,6 +4108,7 @@ function removePreset(presetId) {
 
 function renderDrawerPresets() {
   if (!els.drawerPresetList) return;
+  els.presetPicker?.classList.remove("hidden");
   els.drawerPresetList.innerHTML = "";
   state.presets.forEach((preset) => {
     const button = document.createElement("button");
@@ -3936,11 +4116,12 @@ function renderDrawerPresets() {
     button.className = `drawer-choice${preset.id === state.activePresetId ? " active" : ""}`;
     button.innerHTML = `
       <strong>${escapeHtml(preset.name)}</strong>
-      <small>Temp ${Number(preset.temperature ?? 0.7).toFixed(1)}</small>
+      <small>Temp ${Number(preset.temperature ?? 0.7).toFixed(2)} • Top P ${Number(preset.topP ?? 1).toFixed(2)}</small>
     `;
     button.addEventListener("click", () => {
       usePreset(preset.id);
-      showDrawerPresetEditor(preset.id);
+      showDrawerPresetEditor(state.activePresetId);
+      openDrawerPanel("preset-editor");
     });
     els.drawerPresetList.appendChild(button);
   });
@@ -4008,38 +4189,171 @@ function updateComposerOffset() {
   document.documentElement.style.setProperty("--composer-offset", `${composerHeight + 24}px`);
 }
 
+function buildDrawerPresetDraft(preset) {
+  const orderedPrompts = getOrderedPromptEntries(preset).map((prompt) => ({
+    ...prompt,
+    enabled: prompt._orderEnabled !== false && prompt.enabled !== false,
+  }));
+
+  return {
+    presetId: preset.id,
+    prompts: orderedPrompts,
+  };
+}
+
+function renderDrawerPresetPromptList() {
+  if (!els.drawerPresetPromptList) return;
+  const prompts = Array.isArray(drawerPresetEditorDraft?.prompts) ? drawerPresetEditorDraft.prompts : [];
+  els.drawerPresetPromptList.innerHTML = "";
+
+  if (!prompts.length) {
+    const empty = document.createElement("article");
+    empty.className = "entity-card";
+    empty.innerHTML = `<div class="entity-meta">No prompt blocks in this preset.</div>`;
+    els.drawerPresetPromptList.appendChild(empty);
+    return;
+  }
+
+  prompts.forEach((prompt, index) => {
+    const item = document.createElement("article");
+    item.className = "entity-card drawer-prompt-item";
+    item.draggable = true;
+    item.dataset.promptIndex = String(index);
+    item.innerHTML = `
+      <div class="drawer-prompt-top">
+        <div>
+          <h3>${escapeHtml(prompt.name || prompt.identifier || `Prompt ${index + 1}`)}</h3>
+          <div class="entity-meta">${escapeHtml(prompt.identifier || "")}</div>
+        </div>
+        <button class="secondary" data-action="toggle" type="button">${prompt.enabled !== false ? "On" : "Off"}</button>
+      </div>
+      <div class="entity-meta">Role ${escapeHtml(prompt.role || "system")} • Pos ${escapeHtml(String(prompt.injection_position ?? 0))} • Depth ${escapeHtml(String(prompt.injection_depth ?? 0))}</div>
+      <div class="entity-meta">⇅ Drag to reorder</div>
+    `;
+
+    item.querySelector('[data-action="toggle"]')?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      prompt.enabled = prompt.enabled === false;
+      renderDrawerPresetPromptList();
+    });
+
+    item.addEventListener("dragstart", (event) => {
+      drawerPresetPromptDragIndex = index;
+      item.classList.add("is-dragging");
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", String(index));
+      }
+    });
+
+    item.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      item.classList.add("drag-over");
+    });
+
+    item.addEventListener("dragleave", () => {
+      item.classList.remove("drag-over");
+    });
+
+    item.addEventListener("drop", (event) => {
+      event.preventDefault();
+      item.classList.remove("drag-over");
+      const fromIndex = drawerPresetPromptDragIndex;
+      const toIndex = index;
+      if (!Number.isInteger(fromIndex) || fromIndex < 0 || fromIndex >= prompts.length || fromIndex === toIndex) {
+        return;
+      }
+      const [moved] = prompts.splice(fromIndex, 1);
+      prompts.splice(toIndex, 0, moved);
+      drawerPresetPromptDragIndex = -1;
+      renderDrawerPresetPromptList();
+    });
+
+    item.addEventListener("dragend", () => {
+      drawerPresetPromptDragIndex = -1;
+      item.classList.remove("is-dragging", "drag-over");
+      els.drawerPresetPromptList
+        ?.querySelectorAll(".drawer-prompt-item.drag-over")
+        ?.forEach((node) => node.classList.remove("drag-over"));
+    });
+
+    els.drawerPresetPromptList.appendChild(item);
+  });
+}
+
 function showDrawerPresetEditor(presetId) {
-  const preset = state.presets.find((item) => item.id === presetId || item.id === state.activePresetId);
+  const preset = state.presets.find((item) => item.id === presetId) || getActivePreset();
   if (!preset || !els.drawerPresetEditor) return;
   els.drawerPresetEditor.classList.remove("hidden");
   els.drawerPresetEditor.dataset.presetId = preset.id;
+  drawerPresetEditorDraft = buildDrawerPresetDraft(preset);
   if (els.drawerPresetNameInput) els.drawerPresetNameInput.value = preset.name || "";
   if (els.drawerPresetTempInput) els.drawerPresetTempInput.value = String(preset.temperature ?? 0.7);
+  if (els.drawerPresetTopPInput) els.drawerPresetTopPInput.value = String(preset.topP ?? 1);
   if (els.drawerPresetSystemInput) els.drawerPresetSystemInput.value = preset.systemPrompt || "";
+  renderDrawerPresetPromptList();
 }
 
 function hideDrawerPresetEditor() {
-  if (!els.drawerPresetEditor) return;
-  els.drawerPresetEditor.classList.add("hidden");
-  delete els.drawerPresetEditor.dataset.presetId;
+  drawerPresetPromptDragIndex = -1;
+  drawerPresetEditorDraft = null;
+  if (els.drawerPresetEditor) {
+    els.drawerPresetEditor.classList.add("hidden");
+    delete els.drawerPresetEditor.dataset.presetId;
+  }
+
+  if (els.chatDrawer?.classList.contains("open") && els.chatDrawer?.dataset?.panel === "preset-editor") {
+    closeDrawerPanel();
+  }
 }
 
 function saveDrawerPresetEdits() {
-  const presetId = els.drawerPresetEditor?.dataset?.presetId || state.activePresetId;
+  const presetId = drawerPresetEditorDraft?.presetId || els.drawerPresetEditor?.dataset?.presetId || state.activePresetId;
   const presetIndex = state.presets.findIndex((item) => item.id === presetId);
   if (presetIndex < 0) return;
+
   const current = state.presets[presetIndex];
   const nextTemp = Number.parseFloat(els.drawerPresetTempInput?.value || String(current.temperature ?? 0.7));
-  state.presets[presetIndex] = {
+  const nextTopP = Number.parseFloat(els.drawerPresetTopPInput?.value || String(current.topP ?? 1));
+
+  if (!Number.isFinite(nextTemp) || nextTemp < 0 || nextTemp > 2) {
+    showToast("Temperature must be between 0 and 2", "error");
+    return;
+  }
+  if (!Number.isFinite(nextTopP) || nextTopP < 0 || nextTopP > 1) {
+    showToast("Top P must be between 0 and 1", "error");
+    return;
+  }
+
+  const promptDraftList = normalizePresetPromptList(drawerPresetEditorDraft?.prompts || current.prompts || []);
+  const promptOrder = [{
+    character_id: 100001,
+    order: promptDraftList.map((prompt) => ({
+      identifier: prompt.identifier,
+      enabled: prompt.enabled !== false,
+    })),
+  }];
+
+  const updatedPreset = normalizePreset({
     ...current,
-    name: els.drawerPresetNameInput?.value?.trim() || current.name,
-    temperature: Number.isFinite(nextTemp) ? nextTemp : current.temperature,
+    name: current.name,
+    temperature: nextTemp,
+    topP: nextTopP,
     systemPrompt: els.drawerPresetSystemInput?.value?.trim() || current.systemPrompt,
-  };
+    prompts: promptDraftList,
+    promptOrder,
+  });
+
+  state.presets[presetIndex] = updatedPreset;
+  if (state.activePresetId === updatedPreset.id) {
+    showDrawerPresetEditor(updatedPreset.id);
+  }
+
   persistState();
   renderPresets();
   renderDrawerState();
   setStatus("Preset updated");
+  showToast("Preset updated", "success");
 }
 
 function showDrawerProviderEditor(providerId) {
@@ -4813,10 +5127,12 @@ function setActiveDrawerPanel(panelId = "root") {
 
   if (panelId === "provider") {
     showDrawerProviderEditor(state.activeProviderId);
-  } else if (panelId === "preset") {
+  } else if (panelId === "preset-editor") {
     showDrawerPresetEditor(state.activePresetId);
   } else if (panelId === "lorebook") {
     renderDrawerLorebooks();
+  } else if (panelId === "log") {
+    renderDrawerLogs();
   }
 }
 
@@ -4884,6 +5200,10 @@ function renderDrawerState() {
     const max = Number(preset?.maxTokens ?? 300);
     els.currentPresetLabel.textContent = `Current preset: ${preset?.name || "Default preset"} • temp ${temp} • top_p ${topP} • max ${max}`;
   }
+  if (els.currentPresetSummaryBtn) {
+    const summaryTitle = els.currentPresetSummaryBtn.querySelector("strong");
+    if (summaryTitle) summaryTitle.textContent = preset?.name || "Default preset";
+  }
   if (els.currentProviderLabel) {
     const thinkingEnabled = provider?.showThinkingSummaries !== false ? "on" : "off";
     els.currentProviderLabel.textContent = `Current provider: ${provider?.name || "None selected"} • model ${state.selectedModel || "-"} • thinking ${thinkingEnabled}`;
@@ -4916,6 +5236,7 @@ function renderDrawerState() {
   renderDrawerPresets();
   renderDrawerProviders();
   renderDrawerLorebooks();
+  renderDrawerLogs();
   updateImpersonationButton();
 }
 

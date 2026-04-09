@@ -1147,6 +1147,39 @@ svg {
   background: rgba(255,255,255,0.02);
 }
 
+.drawer-log-terminal {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.68rem;
+  line-height: 1.45;
+  color: #9ef4be;
+  background: #020403;
+  border: 1px solid rgba(62, 255, 128, 0.15);
+  min-height: 220px;
+  max-height: 52vh;
+  overflow: auto;
+}
+
+.drawer-prompt-item {
+  user-select: none;
+}
+
+.drawer-prompt-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.drawer-prompt-item.is-dragging {
+  opacity: 0.55;
+  border-color: var(--border-strong);
+}
+
+.drawer-prompt-item.drag-over {
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+}
+
 .drawer-title-input {
   margin-top: 8px;
 }

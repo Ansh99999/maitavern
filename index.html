@@ -943,23 +943,49 @@
             </div>
             <div class="drawer-group drawer-copy">
               <p id="currentPresetLabel">Current preset: Default preset</p>
+              <button id="currentPresetSummaryBtn" class="drawer-choice" type="button">
+                <strong>Open applied preset</strong>
+                <small>View config, prompt toggles, and order</small>
+              </button>
               <pre id="drawerPresetDetails" class="entity-meta"></pre>
+              <p class="entity-meta">Preset list</p>
               <section id="presetPicker" class="drawer-picker">
                 <div id="drawerPresetList" class="entity-list compact-entity-list"></div>
               </section>
+            </div>
+          </section>
+
+          <section class="drawer-panel" data-panel-id="preset-editor">
+            <div class="panel-header">
+              <h3>Preset config</h3>
+              <button class="icon-button drawer-back-btn" data-drawer-back="1" aria-label="Back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+              </button>
+            </div>
+            <div class="drawer-group drawer-copy">
               <section id="drawerPresetEditor" class="provider-form-card">
                 <label class="field compact-field">
                   <span>Preset name</span>
-                  <input id="drawerPresetNameInput" type="text" />
+                  <input id="drawerPresetNameInput" type="text" readonly />
                 </label>
                 <label class="field compact-field">
                   <span>Temperature</span>
                   <input id="drawerPresetTempInput" type="number" min="0" max="2" step="0.1" />
                 </label>
                 <label class="field compact-field">
-                  <span>System prompt</span>
-                  <textarea id="drawerPresetSystemInput" rows="4"></textarea>
+                  <span>Top P</span>
+                  <input id="drawerPresetTopPInput" type="number" min="0" max="1" step="0.01" />
                 </label>
+                <label class="field compact-field">
+                  <span>System prompt</span>
+                  <textarea id="drawerPresetSystemInput" rows="5"></textarea>
+                </label>
+
+                <div class="field compact-field">
+                  <span>Prompt blocks (toggle + drag to reorder)</span>
+                  <div id="drawerPresetPromptList" class="entity-list compact-entity-list"></div>
+                </div>
+
                 <div class="button-row">
                   <button id="drawerPresetSaveBtn" class="primary" type="button">Save preset</button>
                   <button id="drawerPresetCancelBtn" class="secondary" type="button">Cancel</button>
@@ -1037,9 +1063,15 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
               </button>
             </div>
-            <article class="entity-card">
-              <div class="entity-meta">Log view placeholder.</div>
-            </article>
+            <div class="drawer-group drawer-copy">
+              <p id="drawerLogMeta" class="entity-meta">Logs: 0/5</p>
+              <div class="button-row">
+                <button id="drawerLogCopyBtn" class="secondary" type="button">Copy selected log</button>
+                <button id="drawerLogClearBtn" class="danger" type="button">Clear logs</button>
+              </div>
+              <section id="drawerLogList" class="entity-list compact-entity-list"></section>
+              <pre id="drawerLogTerminal" class="drawer-log-terminal" aria-live="polite"></pre>
+            </div>
           </section>
         </aside>
 
