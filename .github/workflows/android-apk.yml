@@ -11,6 +11,9 @@ on:
       - "android-ci/**"
       - ".github/workflows/android-apk.yml"
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -68,3 +71,27 @@ jobs:
           name: maitavern-release-apk
           path: android-ci/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
+
+      - name: Set release metadata
+        id: meta
+        run: |
+          VERSION_NAME="1.0.${GITHUB_RUN_NUMBER}"
+          TAG_NAME="v${VERSION_NAME}-run${GITHUB_RUN_ID}"
+          SOURCE_APK="android-ci/app/build/outputs/apk/release/app-release.apk"
+          RELEASE_APK="maitavern-${TAG_NAME}.apk"
+
+          cp "$SOURCE_APK" "$RELEASE_APK"
+
+          echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
+          echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "release_apk=${RELEASE_APK}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag_name }}
+          name: MaiTavern ${{ steps.meta.outputs.version_name }}
+          generate_release_notes: true
+          files: ${{ steps.meta.outputs.release_apk }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
