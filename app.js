@@ -3,11 +3,15 @@ const USER_FILE_STORAGE_KEY = "maitavern-user-file-v1"; // legacy fallback (migr
 const USER_FILE_SCHEMA_VERSION = 1;
 const USER_FILE_NAME = "user";
 const USER_FILE_ENDPOINT = "/api/user";
+const USER_FILE_INDEXED_DB_NAME = "maitavern-user-db";
+const USER_FILE_INDEXED_DB_STORE = "payloads";
+const USER_FILE_INDEXED_DB_KEY = "user-file";
 
 let userFileWriteTimer = null;
 let pendingUserFilePayload = null;
 let userFileWriteInFlight = false;
 let deviceStorageUnavailable = false;
+let userFileIndexedDbPromise = null;
 
 const defaults = {
   hasEnteredApp: false,
@@ -5588,18 +5592,103 @@ function canUseBrowserStorage() {
   }
 }
 
-function writeUserFileToBrowserStorage(payload) {
-  if (!canUseBrowserStorage()) return false;
+function canUseIndexedDb() {
+  return typeof indexedDB !== "undefined";
+}
+
+function getUserFileIndexedDb() {
+  if (!canUseIndexedDb()) {
+    return Promise.reject(new Error("IndexedDB unavailable"));
+  }
+
+  if (!userFileIndexedDbPromise) {
+    userFileIndexedDbPromise = new Promise((resolve, reject) => {
+      let request;
+      try {
+        request = indexedDB.open(USER_FILE_INDEXED_DB_NAME, 1);
+      } catch (error) {
+        reject(error);
+        return;
+      }
+
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(USER_FILE_INDEXED_DB_STORE)) {
+          db.createObjectStore(USER_FILE_INDEXED_DB_STORE);
+        }
+      };
+
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+
+      request.onerror = () => {
+        reject(request.error || new Error("IndexedDB open failed"));
+      };
+    });
+  }
+
+  return userFileIndexedDbPromise;
+}
+
+async function writeUserFileToIndexedDb(payload) {
+  if (!canUseIndexedDb()) return false;
+
   try {
-    const text = JSON.stringify(payload);
-    localStorage.setItem(USER_FILE_STORAGE_KEY, text);
-    if (payload?.state && typeof payload.state === "object") {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload.state));
-    }
+    const db = await getUserFileIndexedDb();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(USER_FILE_INDEXED_DB_STORE, "readwrite");
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error || new Error("IndexedDB write transaction failed"));
+      tx.onabort = () => reject(tx.error || new Error("IndexedDB write transaction aborted"));
+      tx.objectStore(USER_FILE_INDEXED_DB_STORE).put(payload, USER_FILE_INDEXED_DB_KEY);
+    });
     return true;
   } catch {
     return false;
   }
+}
+
+async function readUserFileFromIndexedDb() {
+  if (!canUseIndexedDb()) return null;
+
+  try {
+    const db = await getUserFileIndexedDb();
+    const value = await new Promise((resolve, reject) => {
+      const tx = db.transaction(USER_FILE_INDEXED_DB_STORE, "readonly");
+      tx.onerror = () => reject(tx.error || new Error("IndexedDB read transaction failed"));
+      tx.onabort = () => reject(tx.error || new Error("IndexedDB read transaction aborted"));
+      const request = tx.objectStore(USER_FILE_INDEXED_DB_STORE).get(USER_FILE_INDEXED_DB_KEY);
+      request.onsuccess = () => resolve(request.result ?? null);
+      request.onerror = () => reject(request.error || new Error("IndexedDB read failed"));
+    });
+
+    return value && typeof value === "object" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeUserFileToBrowserStorage(payload) {
+  if (!canUseBrowserStorage()) return false;
+
+  try {
+    const text = JSON.stringify(payload);
+    localStorage.setItem(USER_FILE_STORAGE_KEY, text);
+  } catch {
+    return false;
+  }
+
+  // Legacy key is best-effort only. Do not fail the save if this overflows quota.
+  try {
+    if (payload?.state && typeof payload.state === "object") {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload.state));
+    }
+  } catch {
+    // no-op
+  }
+
+  return true;
 }
 
 function readUserFileFromBrowserStorage() {
@@ -5649,6 +5738,11 @@ async function writeUserFileToDisk(payload) {
     deviceStorageUnavailable = false;
   } catch (error) {
     deviceStorageUnavailable = true;
+    const indexedDbSaved = await writeUserFileToIndexedDb(payload);
+    if (indexedDbSaved) {
+      writeUserFileToBrowserStorage(payload);
+      return;
+    }
     if (writeUserFileToBrowserStorage(payload)) {
       return;
     }
@@ -5680,6 +5774,12 @@ async function readUserFileFromDisk() {
     deviceStorageUnavailable = false;
     return { parsed };
   } catch (error) {
+    const indexedDbFallback = await readUserFileFromIndexedDb();
+    if (indexedDbFallback && typeof indexedDbFallback === "object") {
+      deviceStorageUnavailable = true;
+      return { parsed: indexedDbFallback };
+    }
+
     const fallback = readUserFileFromBrowserStorage();
     if (fallback && typeof fallback === "object") {
       deviceStorageUnavailable = true;
@@ -5694,14 +5794,18 @@ async function readUserFileFromDisk() {
 async function flushPendingUserFileWrite() {
   if (!pendingUserFilePayload || userFileWriteInFlight) return;
 
+  const payload = pendingUserFilePayload;
+  pendingUserFilePayload = null;
   userFileWriteInFlight = true;
+
   try {
-    const payload = pendingUserFilePayload;
-    pendingUserFilePayload = null;
     await writeUserFileToDisk(payload);
     setStatus(deviceStorageUnavailable ? "Saved locally on device" : `Saved to local file: ${USER_FILE_NAME}`);
   } catch {
-    // Keep payload for retry on next save.
+    // Preserve payload for retry unless a newer one is already queued.
+    if (!pendingUserFilePayload) {
+      pendingUserFilePayload = payload;
+    }
   } finally {
     userFileWriteInFlight = false;
     if (pendingUserFilePayload) {
