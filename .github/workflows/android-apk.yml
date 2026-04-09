@@ -33,9 +33,26 @@ jobs:
       - name: Restore release keystore (optional)
         env:
           MAITAVERN_KEYSTORE_BASE64: ${{ secrets.MAITAVERN_KEYSTORE_BASE64 }}
+          MAITAVERN_KEYSTORE_PASSWORD: ${{ secrets.MAITAVERN_KEYSTORE_PASSWORD }}
+          MAITAVERN_KEY_ALIAS: ${{ secrets.MAITAVERN_KEY_ALIAS }}
         run: |
           if [ -n "${MAITAVERN_KEYSTORE_BASE64}" ]; then
-            echo "$MAITAVERN_KEYSTORE_BASE64" | base64 -d > android-ci/maitavern-release.keystore
+            python - << 'PY'
+import base64, os, pathlib
+b64 = os.environ.get("MAITAVERN_KEYSTORE_BASE64", "")
+b64 = "".join(b64.split())
+raw = base64.b64decode(b64, validate=True)
+pathlib.Path("android-ci/maitavern-release.keystore").write_bytes(raw)
+print("Release keystore restored.")
+PY
+
+            if [ -n "${MAITAVERN_KEYSTORE_PASSWORD}" ] && [ -n "${MAITAVERN_KEY_ALIAS}" ]; then
+              keytool -list \
+                -keystore android-ci/maitavern-release.keystore \
+                -storepass "${MAITAVERN_KEYSTORE_PASSWORD}" \
+                -alias "${MAITAVERN_KEY_ALIAS}" > /dev/null
+              echo "Release keystore validation passed."
+            fi
           else
             echo "No release keystore secret found; release APK will be signed with debug key."
           fi
