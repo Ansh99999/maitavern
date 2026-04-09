@@ -841,120 +841,215 @@
       </section>
 
       <section id="chatsView" class="view detail-view chat-view-shell">
-        <aside id="chatDrawer" class="chat-drawer hidden">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Current chat</p>
-              <input id="chatTitleInput" class="drawer-title-input" type="text" placeholder="Chat name" />
+        <div id="chatDrawerBackdrop" class="chat-drawer-backdrop hidden"></div>
+        <aside id="chatDrawer" class="chat-drawer" data-panel="root">
+          <section class="drawer-panel active" data-panel-id="root">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Chat menu</p>
+                <input id="chatTitleInput" class="drawer-title-input" type="text" placeholder="Chat name" />
+              </div>
+              <button id="closeChatDrawerBtn" class="icon-button" aria-label="Close chat menu">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                  <path d="M6 6l12 12"></path>
+                  <path d="M18 6L6 18"></path>
+                </svg>
+              </button>
             </div>
-            <button id="closeChatDrawerBtn" class="icon-button" aria-label="Close chat menu">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-                <path d="M6 6l12 12"></path>
-                <path d="M18 6L6 18"></path>
-              </svg>
-            </button>
-          </div>
+            <div class="drawer-group drawer-nav-list">
+              <button id="drawerHomeBtn" class="drawer-link drawer-icon-link" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5L12 4l9 7.5"></path><path d="M5 10.5V20h14v-9.5"></path></svg>
+                <span>Homepage</span>
+              </button>
+              <button id="drawerProviderBtn" class="drawer-link drawer-icon-link" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="6" rx="2"></rect><rect x="3" y="14" width="18" height="6" rx="2"></rect></svg>
+                <span>Provider</span>
+              </button>
+              <button id="drawerPresetBtn" class="drawer-link drawer-icon-link" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
+                <span>Preset</span>
+              </button>
+              <button id="drawerMemoryBtn" class="drawer-link drawer-icon-link" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h16"></path><path d="M8 7v10"></path></svg>
+                <span>Memory</span>
+              </button>
+              <button id="drawerLogBtn" class="drawer-link drawer-icon-link" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17v-6"></path><path d="M12 17V7"></path><path d="M15 17v-3"></path><path d="M4 20h16"></path><path d="M4 4h16"></path></svg>
+                <span>Log</span>
+              </button>
+            </div>
+          </section>
 
-          <div class="drawer-group">
-            <button class="drawer-link" data-drawer-view="homeView">Homepage</button>
-            <button class="drawer-link" data-drawer-view="presetsView">Presets</button>
-            <button class="drawer-link" data-drawer-view="providersView">Providers</button>
-            <button class="drawer-link" data-drawer-view="libraryView">Library</button>
-          </div>
+          <section class="drawer-panel" data-panel-id="provider">
+            <div class="panel-header">
+              <h3>Provider</h3>
+              <button class="icon-button drawer-back-btn" data-drawer-back="1" aria-label="Back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+              </button>
+            </div>
+            <div class="drawer-group drawer-copy">
+              <p id="currentProviderLabel">Current provider: None selected</p>
+              <pre id="drawerProviderDetails" class="entity-meta"></pre>
+              <label class="field compact-field">
+                <span>Model</span>
+                <select id="modelSelect"></select>
+              </label>
+              <section id="providerPicker" class="drawer-picker">
+                <div id="drawerProviderList" class="entity-list compact-entity-list"></div>
+              </section>
+              <section id="drawerProviderEditor" class="provider-form-card">
+                <label class="field compact-field">
+                  <span>Provider name</span>
+                  <input id="drawerProviderNameInput" type="text" />
+                </label>
+                <label class="field compact-field">
+                  <span>Base URL</span>
+                  <input id="drawerProviderUrlInput" type="url" />
+                </label>
+                <label class="field compact-field">
+                  <span>API key</span>
+                  <input id="drawerProviderApiKeyInput" type="password" />
+                </label>
+                <label class="field checkbox-field compact-field">
+                  <span>Enable thinking summaries</span>
+                  <input id="drawerProviderShowThinkingInput" type="checkbox" checked />
+                </label>
+                <label class="field compact-field">
+                  <span>Thinking start tag</span>
+                  <input id="drawerProviderThinkStartInput" type="text" placeholder="&lt;thinking&gt;" />
+                </label>
+                <label class="field compact-field">
+                  <span>Thinking end tag</span>
+                  <input id="drawerProviderThinkEndInput" type="text" placeholder="&lt;/thinking&gt;" />
+                </label>
+                <label class="field checkbox-field compact-field">
+                  <span>Include thinking in prompt</span>
+                  <input id="drawerProviderIncludeThinkingInput" type="checkbox" />
+                </label>
+                <div class="button-row">
+                  <button id="drawerProviderSaveBtn" class="primary" type="button">Save provider</button>
+                  <button id="drawerProviderCancelBtn" class="secondary" type="button">Cancel</button>
+                </div>
+              </section>
+            </div>
+          </section>
 
-          <div class="drawer-group drawer-copy">
-            <label class="field compact-field">
-              <span>Model</span>
-              <select id="modelSelect"></select>
-            </label>
-            <p id="currentPresetLabel">Current preset: Default preset</p>
-            <button id="applyOtherPresetBtn" class="secondary" type="button">Choose preset</button>
-            <section id="presetPicker" class="drawer-picker hidden">
-              <div id="drawerPresetList" class="entity-list compact-entity-list"></div>
-            </section>
-            <section id="drawerPresetEditor" class="provider-form-card hidden">
+          <section class="drawer-panel" data-panel-id="preset">
+            <div class="panel-header">
+              <h3>Preset</h3>
+              <button class="icon-button drawer-back-btn" data-drawer-back="1" aria-label="Back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+              </button>
+            </div>
+            <div class="drawer-group drawer-copy">
+              <p id="currentPresetLabel">Current preset: Default preset</p>
+              <pre id="drawerPresetDetails" class="entity-meta"></pre>
+              <section id="presetPicker" class="drawer-picker">
+                <div id="drawerPresetList" class="entity-list compact-entity-list"></div>
+              </section>
+              <section id="drawerPresetEditor" class="provider-form-card">
+                <label class="field compact-field">
+                  <span>Preset name</span>
+                  <input id="drawerPresetNameInput" type="text" />
+                </label>
+                <label class="field compact-field">
+                  <span>Temperature</span>
+                  <input id="drawerPresetTempInput" type="number" min="0" max="2" step="0.1" />
+                </label>
+                <label class="field compact-field">
+                  <span>System prompt</span>
+                  <textarea id="drawerPresetSystemInput" rows="4"></textarea>
+                </label>
+                <div class="button-row">
+                  <button id="drawerPresetSaveBtn" class="primary" type="button">Save preset</button>
+                  <button id="drawerPresetCancelBtn" class="secondary" type="button">Cancel</button>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section class="drawer-panel" data-panel-id="memory">
+            <div class="panel-header">
+              <h3>Memory</h3>
+              <button class="icon-button drawer-back-btn" data-drawer-back="1" aria-label="Back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+              </button>
+            </div>
+            <div class="drawer-group">
+              <button id="drawerMemoryLorebookBtn" class="drawer-link drawer-icon-link" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                <span>Lorebook</span>
+              </button>
+              <button id="drawerMemorySummariseBtn" class="drawer-link drawer-icon-link" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                <span>Summarise</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="drawer-panel" data-panel-id="lorebook">
+            <div class="panel-header">
+              <h3>Lorebook</h3>
+              <button class="icon-button drawer-back-btn" data-drawer-back="1" aria-label="Back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+              </button>
+            </div>
+            <div class="drawer-group drawer-copy">
               <label class="field compact-field">
-                <span>Preset name</span>
-                <input id="drawerPresetNameInput" type="text" />
-              </label>
-              <label class="field compact-field">
-                <span>Temperature</span>
-                <input id="drawerPresetTempInput" type="number" min="0" max="2" step="0.1" />
-              </label>
-              <label class="field compact-field">
-                <span>System prompt</span>
-                <textarea id="drawerPresetSystemInput" rows="3"></textarea>
+                <span>Current lorebook</span>
+                <select id="drawerLorebookSelect"></select>
               </label>
               <div class="button-row">
-                <button id="drawerPresetSaveBtn" class="primary" type="button">Save preset</button>
-                <button id="drawerPresetCancelBtn" class="secondary" type="button">Cancel</button>
+                <button id="drawerLorebookImportBtn" class="secondary" type="button">Import lorebook</button>
               </div>
-            </section>
-            <p id="currentProviderLabel">Current provider: None selected</p>
-            <button id="applyOtherProviderBtn" class="secondary" type="button">Choose provider</button>
-            <section id="providerPicker" class="drawer-picker hidden">
-              <div id="drawerProviderList" class="entity-list compact-entity-list"></div>
-            </section>
-            <section id="drawerProviderEditor" class="provider-form-card hidden">
               <label class="field compact-field">
-                <span>Provider name</span>
-                <input id="drawerProviderNameInput" type="text" />
+                <span>Lorebook search</span>
+                <input id="drawerLorebookSearchInput" type="search" placeholder="Search lorebooks" />
               </label>
-              <label class="field compact-field">
-                <span>Base URL</span>
-                <input id="drawerProviderUrlInput" type="url" />
-              </label>
-              <label class="field compact-field">
-                <span>API key</span>
-                <input id="drawerProviderApiKeyInput" type="password" />
-              </label>
-              <label class="field compact-field">
-                <span>Thinking start tag</span>
-                <input id="drawerProviderThinkStartInput" type="text" placeholder="&lt;thinking&gt;" />
-              </label>
-              <label class="field compact-field">
-                <span>Thinking end tag</span>
-                <input id="drawerProviderThinkEndInput" type="text" placeholder="&lt;/thinking&gt;" />
-              </label>
-              <label class="field checkbox-field compact-field">
-                <span>Show thinking summaries</span>
-                <input id="drawerProviderShowThinkingInput" type="checkbox" checked />
-              </label>
-              <label class="field checkbox-field compact-field">
-                <span>Include thinking in prompt</span>
-                <input id="drawerProviderIncludeThinkingInput" type="checkbox" />
-              </label>
-              <div class="button-row">
-                <button id="drawerProviderSaveBtn" class="primary" type="button">Save provider</button>
-                <button id="drawerProviderCancelBtn" class="secondary" type="button">Cancel</button>
+              <p id="currentLorebookLabel">Lorebooks in this chat: none</p>
+              <section id="drawerLorebookEntries" class="entity-list compact-entity-list"></section>
+              <section id="drawerLorebookList" class="entity-list compact-entity-list"></section>
+              <div class="field-grid">
+                <label class="field compact-field">
+                  <span>Lore scan depth</span>
+                  <input id="drawerLorebookScanDepthInput" type="number" min="1" max="64" step="1" />
+                </label>
+                <label class="field compact-field">
+                  <span>Lore token budget</span>
+                  <input id="drawerLorebookTokenBudgetInput" type="number" min="64" max="8000" step="16" />
+                </label>
+                <label class="field checkbox-field compact-field">
+                  <span>Recursive scanning</span>
+                  <input id="drawerLorebookRecursiveInput" type="checkbox" />
+                </label>
               </div>
-            </section>
-            <label class="field compact-field">
-              <span>Lorebook search</span>
-              <input id="drawerLorebookSearchInput" type="search" placeholder="Search lorebooks" />
-            </label>
-            <p id="currentLorebookLabel">Lorebooks in this chat: none</p>
-            <section id="drawerLorebookList" class="entity-list compact-entity-list"></section>
-            <div class="field-grid">
-              <label class="field compact-field">
-                <span>Lore scan depth</span>
-                <input id="drawerLorebookScanDepthInput" type="number" min="1" max="64" step="1" />
-              </label>
-              <label class="field compact-field">
-                <span>Lore token budget</span>
-                <input id="drawerLorebookTokenBudgetInput" type="number" min="64" max="8000" step="16" />
-              </label>
-              <label class="field checkbox-field compact-field">
-                <span>Recursive scanning</span>
-                <input id="drawerLorebookRecursiveInput" type="checkbox" />
-              </label>
+              <div class="button-row inline-controls">
+                <button id="saveDrawerLorebookSettingsBtn" class="secondary" type="button">Save lore settings</button>
+                <span id="drawerLorebookStatus" class="inline-status" aria-live="polite"></span>
+              </div>
             </div>
-            <div class="button-row inline-controls">
-              <button id="saveDrawerLorebookSettingsBtn" class="secondary" type="button">Save lore settings for this chat</button>
-              <span id="drawerLorebookStatus" class="inline-status" aria-live="polite"></span>
+          </section>
+
+          <section class="drawer-panel" data-panel-id="log">
+            <div class="panel-header">
+              <h3>Log</h3>
+              <button class="icon-button drawer-back-btn" data-drawer-back="1" aria-label="Back">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+              </button>
             </div>
-          </div>
+            <article class="entity-card">
+              <div class="entity-meta">Log view placeholder.</div>
+            </article>
+          </section>
         </aside>
+
+        <button id="chatHamburgerBtn" class="icon-button chat-hamburger-btn hidden" type="button" aria-label="Open chat menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16"></path>
+            <path d="M4 12h16"></path>
+            <path d="M4 17h16"></path>
+          </svg>
+        </button>
 
         <div id="recentChats" class="entity-list recent-chats-inline"></div>
         <section id="messages" class="messages"></section>
@@ -1025,7 +1120,35 @@
     <article class="message-row">
       <div class="message-avatar"></div>
       <article class="message">
-        <button type="button" class="message-menu-trigger" aria-label="Message actions">⋯</button>
+        <div class="message-inline-actions">
+          <button type="button" class="message-menu-trigger" aria-label="Message actions">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <circle cx="6" cy="12" r="1.7"></circle>
+              <circle cx="12" cy="12" r="1.7"></circle>
+              <circle cx="18" cy="12" r="1.7"></circle>
+            </svg>
+          </button>
+          <div class="message-action-inline-strip">
+            <button type="button" class="message-icon-btn" data-inline-action="delete" aria-label="Delete message">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
+            </button>
+            <button type="button" class="message-icon-btn" data-inline-action="regenerate" aria-label="Regenerate message">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.36-6.36L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15.36 6.36L3 16"></path><path d="M3 21v-5h5"></path></svg>
+            </button>
+            <button type="button" class="message-icon-btn" data-inline-action="fork" aria-label="Fork from this message">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"></circle><circle cx="18" cy="6" r="2"></circle><circle cx="18" cy="18" r="2"></circle><path d="M8 6h6a4 4 0 0 1 4 4v6"></path></svg>
+            </button>
+            <button type="button" class="message-icon-btn" data-inline-action="edit" aria-label="Edit message">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
+            </button>
+            <button type="button" class="message-icon-btn hidden" data-inline-action="edit-cancel" aria-label="Cancel edit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+            </button>
+            <button type="button" class="message-icon-btn hidden" data-inline-action="edit-save" aria-label="Save edit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 7"></path></svg>
+            </button>
+          </div>
+        </div>
         <div class="message-role"></div>
         <button type="button" class="thinking-chip hidden" aria-label="Show thinking summary">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1037,6 +1160,7 @@
         </button>
         <div class="thinking-summary hidden"></div>
         <div class="message-content"></div>
+        <textarea class="message-edit-input hidden" rows="6"></textarea>
         <div class="message-swipe-controls hidden">
           <button type="button" class="message-swipe-btn message-swipe-left" aria-label="Previous greeting">&lt;</button>
           <div class="message-swipe-counter">1/1</div>
@@ -1048,27 +1172,15 @@
 
   <section id="messageActionPopup" class="message-action-popup hidden">
     <article id="messageActionCard" class="provider-form-card message-action-card">
-      <h3>Message actions</h3>
-      <div class="button-row">
-        <button id="messageActionEditBtn" class="secondary" type="button">Edit</button>
-        <button id="messageActionDeleteBtn" class="danger" type="button">Delete</button>
-        <button id="messageActionRegenerateBtn" class="secondary" type="button">Regenerate</button>
-        <button id="messageActionForkBtn" class="secondary" type="button">Fork</button>
+      <div class="message-delete-header">
+        <button id="messageActionCloseBtn" class="icon-button" type="button" aria-label="Cancel delete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+        </button>
       </div>
-      <div id="messageDeleteOptions" class="hidden">
-        <p id="messageDeletePromptText" class="entity-meta"></p>
-        <div class="button-row">
-          <button id="deleteOneMessageBtn" class="danger" type="button">Delete this message</button>
-          <button id="deleteFromHereBtn" class="danger" type="button">Delete this and below</button>
-        </div>
-      </div>
-      <label class="field hidden" id="messageEditFieldWrap">
-        <span>Edit message</span>
-        <textarea id="messageEditInput" rows="5"></textarea>
-      </label>
+      <p id="messageDeletePromptText" class="message-delete-text">Delete this message</p>
       <div class="button-row">
-        <button id="messageActionConfirmBtn" class="primary hidden" type="button">Save</button>
-        <button id="messageActionCloseBtn" class="secondary" type="button">Close</button>
+        <button id="deleteOneMessageBtn" class="danger" type="button">Delete this message</button>
+        <button id="deleteFromHereBtn" class="danger" type="button">Delete this and below</button>
       </div>
     </article>
   </section>

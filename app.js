@@ -91,6 +91,10 @@ let state = structuredClone(defaults);
 let currentController = null;
 let presetEditorDraft = null;
 let messageActionState = { index: -1, mode: "" };
+let expandedMessageMenuIndex = -1;
+let messageInlineEditIndex = -1;
+let drawerPanelStack = ["root"];
+let drawerLorebookSelectedId = "";
 let wrapRuleSearchQuery = "";
 let appFontStyleTag = null;
 let lorebookEntryDraft = [];
@@ -261,9 +265,20 @@ const els = {
   chatEmptyState: document.getElementById("chatEmptyState"),
   impersonateToggleBtn: document.getElementById("impersonateToggleBtn"),
   impersonateSelect: document.getElementById("impersonateSelect"),
+  chatDrawerBackdrop: document.getElementById("chatDrawerBackdrop"),
   chatDrawer: document.getElementById("chatDrawer"),
   closeChatDrawerBtn: document.getElementById("closeChatDrawerBtn"),
+  chatHamburgerBtn: document.getElementById("chatHamburgerBtn"),
   chatTitleInput: document.getElementById("chatTitleInput"),
+  drawerPanels: Array.from(document.querySelectorAll("#chatDrawer .drawer-panel")),
+  drawerBackBtns: Array.from(document.querySelectorAll("#chatDrawer .drawer-back-btn")),
+  drawerHomeBtn: document.getElementById("drawerHomeBtn"),
+  drawerProviderBtn: document.getElementById("drawerProviderBtn"),
+  drawerPresetBtn: document.getElementById("drawerPresetBtn"),
+  drawerMemoryBtn: document.getElementById("drawerMemoryBtn"),
+  drawerLogBtn: document.getElementById("drawerLogBtn"),
+  drawerMemoryLorebookBtn: document.getElementById("drawerMemoryLorebookBtn"),
+  drawerMemorySummariseBtn: document.getElementById("drawerMemorySummariseBtn"),
   drawerLinks: Array.from(document.querySelectorAll("#chatDrawer .drawer-link[data-drawer-view]")),
   applyOtherPresetBtn: document.getElementById("applyOtherPresetBtn"),
   applyOtherProviderBtn: document.getElementById("applyOtherProviderBtn"),
@@ -273,6 +288,8 @@ const els = {
   drawerProviderList: document.getElementById("drawerProviderList"),
   currentPresetLabel: document.getElementById("currentPresetLabel"),
   currentProviderLabel: document.getElementById("currentProviderLabel"),
+  drawerPresetDetails: document.getElementById("drawerPresetDetails"),
+  drawerProviderDetails: document.getElementById("drawerProviderDetails"),
   drawerPresetEditor: document.getElementById("drawerPresetEditor"),
   drawerPresetNameInput: document.getElementById("drawerPresetNameInput"),
   drawerPresetTempInput: document.getElementById("drawerPresetTempInput"),
@@ -289,6 +306,9 @@ const els = {
   drawerProviderIncludeThinkingInput: document.getElementById("drawerProviderIncludeThinkingInput"),
   drawerProviderSaveBtn: document.getElementById("drawerProviderSaveBtn"),
   drawerProviderCancelBtn: document.getElementById("drawerProviderCancelBtn"),
+  drawerLorebookImportBtn: document.getElementById("drawerLorebookImportBtn"),
+  drawerLorebookSelect: document.getElementById("drawerLorebookSelect"),
+  drawerLorebookEntries: document.getElementById("drawerLorebookEntries"),
   drawerLorebookSearchInput: document.getElementById("drawerLorebookSearchInput"),
   drawerLorebookList: document.getElementById("drawerLorebookList"),
   currentLorebookLabel: document.getElementById("currentLorebookLabel"),
@@ -535,7 +555,9 @@ function bindEvents() {
   els.presetPromptDeleteBtn?.addEventListener("click", deletePresetPromptDraft);
   els.presetPromptCloseBtn?.addEventListener("click", hidePresetPromptEditor);
   els.presetPromptModalBackdrop?.addEventListener("click", hidePresetPromptEditor);
-  els.closeChatDrawerBtn.addEventListener("click", () => toggleChatDrawer(false));
+  els.closeChatDrawerBtn?.addEventListener("click", () => toggleChatDrawer(false));
+  els.chatHamburgerBtn?.addEventListener("click", () => toggleChatDrawer(true));
+  els.chatDrawerBackdrop?.addEventListener("click", () => toggleChatDrawer(false));
   els.drawerLinks.forEach((button) => {
     button.addEventListener("click", () => {
       if (!button.dataset.drawerView) return;
@@ -543,19 +565,35 @@ function bindEvents() {
       toggleChatDrawer(false);
     });
   });
-  els.applyOtherPresetBtn.addEventListener("click", () => {
-    const shouldShow = els.presetPicker.classList.contains("hidden");
-    els.presetPicker.classList.toggle("hidden", !shouldShow);
-    els.providerPicker.classList.add("hidden");
+  els.drawerHomeBtn?.addEventListener("click", () => {
+    switchView("homeView");
+    toggleChatDrawer(false);
+  });
+  els.drawerProviderBtn?.addEventListener("click", () => openDrawerPanel("provider"));
+  els.drawerPresetBtn?.addEventListener("click", () => openDrawerPanel("preset"));
+  els.drawerMemoryBtn?.addEventListener("click", () => openDrawerPanel("memory"));
+  els.drawerLogBtn?.addEventListener("click", () => openDrawerPanel("log"));
+  els.drawerMemoryLorebookBtn?.addEventListener("click", () => openDrawerPanel("lorebook"));
+  els.drawerMemorySummariseBtn?.addEventListener("click", () => showToast("Summarise coming soon", "success"));
+  els.drawerBackBtns?.forEach((button) => button.addEventListener("click", closeDrawerPanel));
+  els.drawerLorebookImportBtn?.addEventListener("click", () => els.lorebookImportInput?.click());
+  els.drawerLorebookSelect?.addEventListener("change", () => {
+    drawerLorebookSelectedId = els.drawerLorebookSelect?.value || "";
+    renderDrawerLorebooks();
+  });
+  els.applyOtherPresetBtn?.addEventListener("click", () => {
+    const shouldShow = els.presetPicker?.classList.contains("hidden");
+    els.presetPicker?.classList.toggle("hidden", !shouldShow);
+    els.providerPicker?.classList.add("hidden");
     hideDrawerProviderEditor();
   });
-  els.applyOtherProviderBtn.addEventListener("click", () => {
-    const shouldShow = els.providerPicker.classList.contains("hidden");
-    els.providerPicker.classList.toggle("hidden", !shouldShow);
-    els.presetPicker.classList.add("hidden");
+  els.applyOtherProviderBtn?.addEventListener("click", () => {
+    const shouldShow = els.providerPicker?.classList.contains("hidden");
+    els.providerPicker?.classList.toggle("hidden", !shouldShow);
+    els.presetPicker?.classList.add("hidden");
     hideDrawerPresetEditor();
   });
-  els.chatTitleInput.addEventListener("input", onChatTitleInput);
+  els.chatTitleInput?.addEventListener("input", onChatTitleInput);
   els.impersonateToggleBtn?.addEventListener("click", toggleImpersonationPicker);
   els.impersonateSelect?.addEventListener("change", onImpersonationChange);
   els.saveCustomizationBtn?.addEventListener("click", saveCustomization);
@@ -603,13 +641,19 @@ function bindEvents() {
   els.messageActionPopup?.addEventListener("click", (event) => {
     if (event.target === els.messageActionPopup) closeMessageActionPopup();
   });
-  els.messageActionEditBtn?.addEventListener("click", startMessageEditFlow);
-  els.messageActionDeleteBtn?.addEventListener("click", startMessageDeleteFlow);
-  els.messageActionRegenerateBtn?.addEventListener("click", regenerateFromMessageAction);
-  els.messageActionForkBtn?.addEventListener("click", () => showToast("Fork is coming soon", "success"));
-  els.messageActionConfirmBtn?.addEventListener("click", commitMessageEditFlow);
   els.deleteOneMessageBtn?.addEventListener("click", () => commitMessageDeleteFlow(false));
   els.deleteFromHereBtn?.addEventListener("click", () => commitMessageDeleteFlow(true));
+
+  document.addEventListener("click", (event) => {
+    const insideMessage = event.target?.closest?.(".message");
+    if (!insideMessage) {
+      if (expandedMessageMenuIndex !== -1) {
+        expandedMessageMenuIndex = -1;
+        renderMessages();
+      }
+      return;
+    }
+  });
 
   document.addEventListener("click", (event) => {
     const trigger = event.target?.closest?.("#textFontSectionBtn, #openFontManagerBtn");
@@ -647,7 +691,7 @@ function switchView(viewId) {
     const isLorebookSubpage = viewId === "lorebookEditorView" && card.dataset.view === "libraryView";
     card.classList.toggle("active", isDirect || isLorebookSubpage);
   });
-  els.settingsToggle?.classList.toggle("hidden", viewId !== "chatsView");
+  els.settingsToggle?.classList.add("hidden");
   if (viewId !== "chatsView") toggleChatDrawer(false);
   updateChatUiVisibility();
   persistState();
@@ -2755,6 +2799,14 @@ function renderMessages() {
   const previousTop = els.messages.scrollTop;
   const shouldStickToBottom = Math.abs((els.messages.scrollHeight - els.messages.clientHeight) - previousTop) < 80;
   els.messages.innerHTML = "";
+
+  if (expandedMessageMenuIndex >= state.messages.length) {
+    expandedMessageMenuIndex = -1;
+  }
+  if (messageInlineEditIndex >= state.messages.length) {
+    messageInlineEditIndex = -1;
+  }
+
   for (let index = 0; index < state.messages.length; index += 1) {
     const msg = state.messages[index];
     const row = els.messageTemplate.content.firstElementChild.cloneNode(true);
@@ -2765,8 +2817,60 @@ function renderMessages() {
     bubble.classList.add(msg.role);
     row.querySelector(".message-role").textContent = getMessageDisplayRole(msg);
 
+    const activeContent = getMessageSwipeContent(msg);
+    const isExpanded = expandedMessageMenuIndex === index;
+    const isEditing = messageInlineEditIndex === index;
+    bubble.classList.toggle("actions-expanded", isExpanded || isEditing);
+
     const menuTrigger = row.querySelector(".message-menu-trigger");
-    menuTrigger?.addEventListener("click", () => openMessageActionPopup(index));
+    menuTrigger?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      expandedMessageMenuIndex = expandedMessageMenuIndex === index ? -1 : index;
+      renderMessages();
+    });
+
+    row.querySelectorAll(".message-icon-btn").forEach((button) => {
+      const action = button.dataset.inlineAction;
+      if (!action) return;
+      if (action === "edit") {
+        button.classList.toggle("hidden", isEditing);
+      }
+      if (action === "edit-cancel" || action === "edit-save") {
+        button.classList.toggle("hidden", !isEditing);
+      }
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (action === "delete") {
+          messageActionState = { index, mode: "delete" };
+          startMessageDeleteFlow();
+          return;
+        }
+        if (action === "regenerate") {
+          regenerateFromMessageAction(index);
+          return;
+        }
+        if (action === "fork") {
+          forkFromMessage(index);
+          return;
+        }
+        if (action === "edit") {
+          messageInlineEditIndex = index;
+          expandedMessageMenuIndex = index;
+          renderMessages();
+          return;
+        }
+        if (action === "edit-cancel") {
+          messageInlineEditIndex = -1;
+          expandedMessageMenuIndex = -1;
+          renderMessages();
+          return;
+        }
+        if (action === "edit-save") {
+          const value = row.querySelector(".message-edit-input")?.value ?? "";
+          commitInlineMessageEdit(index, value);
+        }
+      });
+    });
 
     const thinkingChip = row.querySelector(".thinking-chip");
     const thinkingSummary = row.querySelector(".thinking-summary");
@@ -2777,11 +2881,24 @@ function renderMessages() {
       thinkingChip?.addEventListener("click", () => thinkingSummary.classList.toggle("hidden"));
     }
 
-    const activeContent = getMessageSwipeContent(msg);
-    row.querySelector(".message-content").innerHTML = formatMessageContent(activeContent);
+    const contentEl = row.querySelector(".message-content");
+    const editInput = row.querySelector(".message-edit-input");
+    if (isEditing) {
+      contentEl.classList.add("hidden");
+      editInput.classList.remove("hidden");
+      editInput.value = activeContent;
+      window.setTimeout(() => {
+        editInput.focus();
+        editInput.setSelectionRange(editInput.value.length, editInput.value.length);
+      }, 0);
+    } else {
+      contentEl.classList.remove("hidden");
+      editInput.classList.add("hidden");
+      contentEl.innerHTML = formatMessageContent(activeContent);
+    }
 
     const swipeControls = row.querySelector(".message-swipe-controls");
-    if (swipeControls && Array.isArray(msg.swipes) && msg.swipes.length > 1) {
+    if (swipeControls && Array.isArray(msg.swipes) && msg.swipes.length > 1 && !isEditing) {
       const swipeId = clampSwipeIndex(msg.swipe_id, msg.swipes.length);
       msg.swipe_id = swipeId;
       swipeControls.classList.remove("hidden");
@@ -3076,7 +3193,7 @@ function useProvider(providerId) {
   syncInputsFromState();
   persistState();
   renderDrawerState();
-  els.providerPicker.classList.add("hidden");
+  els.providerPicker?.classList.add("hidden");
   setStatus(`Using provider ${provider.name}`);
 }
 
@@ -3156,8 +3273,51 @@ function renderDrawerLorebooks() {
     return `${book.name || ""} ${book.description || ""}`.toLowerCase().includes(query);
   });
 
-  els.drawerLorebookList.innerHTML = "";
+  if (!drawerLorebookSelectedId || !state.lorebooks.some((book) => book.id === drawerLorebookSelectedId)) {
+    drawerLorebookSelectedId = [...selectedIds][0] || state.lorebooks[0]?.id || "";
+  }
 
+  if (els.drawerLorebookSelect) {
+    els.drawerLorebookSelect.innerHTML = "";
+    state.lorebooks.forEach((book) => {
+      const option = document.createElement("option");
+      option.value = book.id;
+      option.textContent = book.name || "Untitled lorebook";
+      option.selected = book.id === drawerLorebookSelectedId;
+      els.drawerLorebookSelect.appendChild(option);
+    });
+  }
+
+  if (els.drawerLorebookEntries) {
+    els.drawerLorebookEntries.innerHTML = "";
+    const selectedBook = state.lorebooks.find((book) => book.id === drawerLorebookSelectedId);
+    if (!selectedBook) {
+      const empty = document.createElement("article");
+      empty.className = "entity-card";
+      empty.innerHTML = `<div class="entity-meta">No lorebook selected.</div>`;
+      els.drawerLorebookEntries.appendChild(empty);
+    } else if (!selectedBook.entries?.length) {
+      const empty = document.createElement("article");
+      empty.className = "entity-card";
+      empty.innerHTML = `<div class="entity-meta">No entries in ${escapeHtml(selectedBook.name)}.</div>`;
+      els.drawerLorebookEntries.appendChild(empty);
+    } else {
+      selectedBook.entries.forEach((entry, idx) => {
+        const item = document.createElement("article");
+        item.className = "entity-card";
+        item.innerHTML = `
+          <div class="entity-card-header">
+            <h3>${escapeHtml(entry?.title || `Entry ${idx + 1}`)}</h3>
+            <span class="entity-meta">${Array.isArray(entry?.keys) ? entry.keys.length : 0} key(s)</span>
+          </div>
+          <div class="entity-meta">${escapeHtml(String(entry?.content || "").slice(0, 180) || "No content")}</div>
+        `;
+        els.drawerLorebookEntries.appendChild(item);
+      });
+    }
+  }
+
+  els.drawerLorebookList.innerHTML = "";
   if (!isChatOpen) {
     const empty = document.createElement("article");
     empty.className = "entity-card";
@@ -3184,8 +3344,10 @@ function renderDrawerLorebooks() {
         <small>${book.entries?.length || 0} entries${active ? " • attached" : ""}</small>
       `;
       button.addEventListener("click", () => {
+        drawerLorebookSelectedId = book.id;
         if (!getCurrentChat()) {
           setInlineStatus(els.drawerLorebookStatus, "Open a chat first");
+          renderDrawerLorebooks();
           return;
         }
         const next = new Set(getActiveChatLorebookIds());
@@ -3663,7 +3825,7 @@ function usePreset(presetId) {
   state.activePresetId = preset.id;
   persistState();
   renderDrawerState();
-  els.presetPicker.classList.add("hidden");
+  els.presetPicker?.classList.add("hidden");
   setStatus(`Using preset ${preset.name}`);
 }
 
@@ -3742,10 +3904,13 @@ function updateChatUiVisibility() {
   const isChatView = state.activeView === "chatsView";
   const hasActiveChat = isChatView && Boolean(state.currentChatId);
   const hasChatList = isChatView && state.recentChats.length > 0;
+  els.appShell?.classList.toggle("chat-fullscreen", isChatView);
+  els.chatHamburgerBtn?.classList.toggle("hidden", !isChatView);
   els.composer.classList.toggle("hidden", !hasActiveChat);
   els.messages.classList.toggle("hidden", !isChatView || !hasActiveChat);
   els.chatEmptyState.classList.toggle("hidden", !isChatView || hasActiveChat || hasChatList);
   els.recentChats.classList.toggle("hidden", !isChatView || hasActiveChat);
+  if (!isChatView) toggleChatDrawer(false);
 }
 
 function setBusy(isBusy) {
@@ -3843,52 +4008,49 @@ function saveDrawerProviderEdits() {
 }
 
 function openMessageActionPopup(index) {
-  messageActionState = { index, mode: "" };
-  if (!els.messageActionPopup || !els.messageActionCard) return;
-  const trigger = document.querySelectorAll(".message-menu-trigger")[index];
-  if (trigger) {
-    const rect = trigger.getBoundingClientRect();
-    const top = Math.min(window.innerHeight - 260, rect.bottom + 6);
-    const left = Math.min(window.innerWidth - 340, rect.left - 220);
-    els.messageActionPopup.style.top = `${Math.max(8, top)}px`;
-    els.messageActionPopup.style.left = `${Math.max(8, left)}px`;
-  }
-  els.messageDeleteOptions?.classList.add("hidden");
-  els.messageEditFieldWrap?.classList.add("hidden");
-  els.messageActionConfirmBtn?.classList.add("hidden");
+  messageActionState = { index, mode: "delete" };
+  if (!els.messageActionPopup) return;
   els.messageActionPopup.classList.remove("hidden");
 }
 
 function closeMessageActionPopup() {
   if (!els.messageActionPopup) return;
   els.messageActionPopup.classList.add("hidden");
-  els.messageActionPopup.style.top = "";
-  els.messageActionPopup.style.left = "";
-  els.messageDeleteOptions?.classList.add("hidden");
-  els.messageEditFieldWrap?.classList.add("hidden");
-  els.messageActionConfirmBtn?.classList.add("hidden");
   messageActionState = { index: -1, mode: "" };
 }
 
-function startMessageEditFlow() {
-  const msg = state.messages[messageActionState.index];
+function commitInlineMessageEdit(index, value) {
+  const msg = state.messages[index];
   if (!msg) return;
-  messageActionState.mode = "edit";
-  els.messageEditFieldWrap?.classList.remove("hidden");
-  els.messageActionConfirmBtn?.classList.remove("hidden");
-  if (els.messageEditInput) els.messageEditInput.value = msg.content || "";
-}
-
-function commitMessageEditFlow() {
-  if (messageActionState.mode !== "edit") return;
-  const msg = state.messages[messageActionState.index];
-  if (!msg) return;
-  msg.content = els.messageEditInput?.value || msg.content;
+  const nextText = String(value ?? "");
+  msg.content = nextText;
+  if (Array.isArray(msg.swipes) && msg.swipes.length) {
+    const swipeId = clampSwipeIndex(Number(msg.swipe_id ?? 0), msg.swipes.length);
+    msg.swipes[swipeId] = nextText;
+    msg.swipe_id = swipeId;
+  }
+  messageInlineEditIndex = -1;
+  expandedMessageMenuIndex = -1;
   syncCurrentChatFromState();
   persistState();
   renderMessages();
   renderRecentChats();
-  closeMessageActionPopup();
+}
+
+function forkFromMessage(index) {
+  if (index < 0 || index >= state.messages.length) return;
+  const chat = createChatRecord(`${state.currentChatTitle || "Chat"} (fork)`);
+  chat.characterId = getCurrentChat()?.characterId || "";
+  chat.messages = state.messages.slice(0, index + 1).map((message) => ({ ...message }));
+  state.currentChatId = chat.id;
+  state.currentChatTitle = chat.title;
+  state.messages = chat.messages.map((message) => ({ ...message }));
+  syncCurrentChatFromState();
+  persistState();
+  renderMessages();
+  renderRecentChats();
+  renderDrawerState();
+  showToast("Forked chat from this message", "success");
 }
 
 function startMessageDeleteFlow() {
@@ -3897,10 +4059,15 @@ function startMessageDeleteFlow() {
   const below = Math.max(0, state.messages.length - index - 1);
   if (els.messageDeletePromptText) {
     els.messageDeletePromptText.textContent = below
-      ? `Delete this message only, or delete this + ${below} message(s) below?`
-      : "Delete this message?";
+      ? `Delete this message, or delete ${below} message(s) below?`
+      : "Delete this message";
   }
-  els.messageDeleteOptions?.classList.remove("hidden");
+  if (els.deleteFromHereBtn) {
+    els.deleteFromHereBtn.textContent = below > 0 ? `Delete (${below}) below` : "Delete below";
+    els.deleteFromHereBtn.disabled = below < 1;
+  }
+  expandedMessageMenuIndex = -1;
+  openMessageActionPopup(index);
 }
 
 function commitMessageDeleteFlow(deleteBelow = false) {
@@ -3911,6 +4078,8 @@ function commitMessageDeleteFlow(deleteBelow = false) {
   } else {
     state.messages.splice(index, 1);
   }
+  messageInlineEditIndex = -1;
+  expandedMessageMenuIndex = -1;
   syncCurrentChatFromState();
   persistState();
   renderMessages();
@@ -3918,8 +4087,7 @@ function commitMessageDeleteFlow(deleteBelow = false) {
   closeMessageActionPopup();
 }
 
-async function regenerateFromMessageAction() {
-  const index = messageActionState.index;
+async function regenerateFromMessageAction(index = messageActionState.index) {
   if (index < 0 || index >= state.messages.length) return;
   const msg = state.messages[index];
   if (!msg || msg.role !== "assistant") {
@@ -3932,6 +4100,8 @@ async function regenerateFromMessageAction() {
   state.messages.push(assistantMessage);
   const requestMessages = state.messages.slice(0, -1);
 
+  expandedMessageMenuIndex = -1;
+  messageInlineEditIndex = -1;
   syncCurrentChatFromState();
   persistState();
   renderMessages();
@@ -4552,22 +4722,61 @@ function updateImpersonationButton() {
   els.impersonateToggleBtn.title = selectedCharacter ? `Speaking as ${selectedCharacter.name}` : "Speak as yourself";
 }
 
+function setActiveDrawerPanel(panelId = "root") {
+  if (!els.chatDrawer) return;
+  els.chatDrawer.dataset.panel = panelId;
+  els.drawerPanels?.forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.panelId === panelId);
+  });
+
+  if (panelId === "provider") {
+    showDrawerProviderEditor(state.activeProviderId);
+  } else if (panelId === "preset") {
+    showDrawerPresetEditor(state.activePresetId);
+  } else if (panelId === "lorebook") {
+    renderDrawerLorebooks();
+  }
+}
+
+function openDrawerPanel(panelId = "root") {
+  if (!panelId) return;
+  if (drawerPanelStack[drawerPanelStack.length - 1] !== panelId) {
+    drawerPanelStack.push(panelId);
+  }
+  setActiveDrawerPanel(panelId);
+}
+
+function closeDrawerPanel() {
+  if (drawerPanelStack.length <= 1) {
+    toggleChatDrawer(false);
+    return;
+  }
+  drawerPanelStack.pop();
+  setActiveDrawerPanel(drawerPanelStack[drawerPanelStack.length - 1] || "root");
+}
+
 function toggleChatDrawer(show) {
   toggleSettings(false);
   if (show && state.activeView !== "chatsView") {
     return;
   }
-  els.chatDrawer.classList.toggle("hidden", !show);
-  if (!show) {
-    els.presetPicker.classList.add("hidden");
-    els.providerPicker.classList.add("hidden");
+  els.chatDrawer?.classList.toggle("open", Boolean(show));
+  els.chatDrawerBackdrop?.classList.toggle("hidden", !show);
+  if (show) {
+    drawerPanelStack = ["root"];
+    setActiveDrawerPanel("root");
+    renderDrawerState();
+  } else {
     hideDrawerPresetEditor();
     hideDrawerProviderEditor();
+    if (els.messageActionPopup && !els.messageActionPopup.classList.contains("hidden")) {
+      closeMessageActionPopup();
+    }
   }
 }
 
 function onChatTitleInput() {
-  state.currentChatTitle = els.chatTitleInput.value.trim() || "New chat";
+  state.currentChatTitle = els.chatTitleInput?.value?.trim() || "New chat";
   const chat = getCurrentChat();
   if (chat) {
     chat.title = state.currentChatTitle;
@@ -4582,11 +4791,46 @@ function getActivePreset() {
 }
 
 function renderDrawerState() {
-  els.chatTitleInput.value = state.currentChatTitle || "New chat";
+  if (els.chatTitleInput) {
+    els.chatTitleInput.value = state.currentChatTitle || "New chat";
+  }
   const preset = getActivePreset();
   const provider = state.providers.find((item) => item.id === state.activeProviderId);
-  els.currentPresetLabel.textContent = `Current preset: ${preset?.name || "Default preset"}`;
-  els.currentProviderLabel.textContent = `Current provider: ${provider?.name || "None selected"}`;
+  if (els.currentPresetLabel) {
+    const topP = Number(preset?.topP ?? 1).toFixed(2);
+    const temp = Number(preset?.temperature ?? 0.7).toFixed(2);
+    const max = Number(preset?.maxTokens ?? 300);
+    els.currentPresetLabel.textContent = `Current preset: ${preset?.name || "Default preset"} • temp ${temp} • top_p ${topP} • max ${max}`;
+  }
+  if (els.currentProviderLabel) {
+    const thinkingEnabled = provider?.showThinkingSummaries !== false ? "on" : "off";
+    els.currentProviderLabel.textContent = `Current provider: ${provider?.name || "None selected"} • model ${state.selectedModel || "-"} • thinking ${thinkingEnabled}`;
+  }
+  if (els.drawerPresetDetails) {
+    const presetDetails = preset
+      ? {
+        temperature: preset.temperature,
+        topP: preset.topP,
+        maxTokens: preset.maxTokens,
+        stream: Boolean(preset.stream),
+        includeSystemPrompt: preset.useSystemPrompt !== false,
+      }
+      : {};
+    els.drawerPresetDetails.textContent = Object.keys(presetDetails).length ? JSON.stringify(presetDetails, null, 2) : "";
+  }
+  if (els.drawerProviderDetails) {
+    const providerDetails = provider
+      ? {
+        baseUrl: provider.baseUrl,
+        selectedModel: state.selectedModel,
+        showThinking: provider.showThinkingSummaries !== false,
+        includeThinkingInPrompt: Boolean(provider.includeThinkingInPrompt),
+        thinkingStartTag: provider.thinkingStartTag || "<thinking>",
+        thinkingEndTag: provider.thinkingEndTag || "</thinking>",
+      }
+      : {};
+    els.drawerProviderDetails.textContent = Object.keys(providerDetails).length ? JSON.stringify(providerDetails, null, 2) : "";
+  }
   renderDrawerPresets();
   renderDrawerProviders();
   renderDrawerLorebooks();
