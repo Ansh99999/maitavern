@@ -2,6 +2,23 @@ plugins {
     id 'com.android.application'
 }
 
+def runNumberEnv = System.getenv("GITHUB_RUN_NUMBER")
+def computedVersionCode = 1
+if (runNumberEnv != null) {
+    try {
+        computedVersionCode = Integer.parseInt(runNumberEnv)
+    } catch (Exception ignored) {
+        computedVersionCode = 1
+    }
+}
+def computedVersionName = "1.0.${computedVersionCode}"
+
+def keystorePath = System.getenv("MAITAVERN_KEYSTORE_PATH")
+def keystorePassword = System.getenv("MAITAVERN_KEYSTORE_PASSWORD")
+def keyAliasEnv = System.getenv("MAITAVERN_KEY_ALIAS")
+def keyPasswordEnv = System.getenv("MAITAVERN_KEY_PASSWORD")
+def hasReleaseSigning = keystorePath && keystorePassword && keyAliasEnv && keyPasswordEnv && file(keystorePath).exists()
+
 android {
     namespace 'com.maitavern.app'
     compileSdk 34
@@ -10,8 +27,19 @@ android {
         applicationId "com.maitavern.app"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "1.0.0"
+        versionCode computedVersionCode
+        versionName computedVersionName
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(keystorePath)
+                storePassword keystorePassword
+                keyAlias keyAliasEnv
+                keyPassword keyPasswordEnv
+            }
+        }
     }
 
     buildTypes {
@@ -21,7 +49,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.debug
+            signingConfig hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
         }
     }
 
