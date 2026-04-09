@@ -2546,7 +2546,8 @@ async function requestChatCompletion({ headers, payload, signal }) {
     throw new Error(`HTTP ${response.status}: ${extractErrorMessage(text) || response.statusText}`);
   }
 
-  return parseApiJsonResponse(text, requestUrl, "chat completion");
+  const contentType = response.headers.get("content-type") || "";
+  return parseApiJsonResponse(text, requestUrl, "chat completion", contentType);
 }
 
 function shouldRetryWithCompatPayload(data) {
@@ -2663,7 +2664,8 @@ async function fetchModelsForProvider({ endpoint, apiKey, authHeader, authPrefix
     throw new Error(`HTTP ${response.status}: ${extractErrorMessage(text) || response.statusText}`);
   }
 
-  const data = parseApiJsonResponse(text, modelsUrl, "models");
+  const contentType = response.headers.get("content-type") || "";
+  const data = parseApiJsonResponse(text, modelsUrl, "models", contentType);
   const models = extractModels(data);
   if (!models.length) {
     throw new Error("No models returned");
@@ -2768,7 +2770,73 @@ function extractErrorMessage(text) {
   }
 }
 
-function parseApiJsonResponse(text, requestUrl, label) {
+function parseStreamLikeJsonResponse(text) {
+  const source = String(text || "");
+  if (!source) return null;
+
+  const chunks = [];
+  for (const rawLine of source.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line.startsWith("data:")) continue;
+
+    const payload = line.slice(5).trim();
+    if (!payload || payload === "[DONE]") continue;
+
+    try {
+      chunks.push(JSON.parse(payload));
+    } catch {
+      // ignore malformed chunks; we'll fail only if no valid JSON chunks exist.
+    }
+  }
+
+  if (!chunks.length) return null;
+
+  const mergedText = chunks
+    .map((chunk) => {
+      const choice = Array.isArray(chunk?.choices) ? chunk.choices[0] : null;
+      const delta = choice?.delta;
+
+      if (typeof delta?.content === "string") return delta.content;
+      if (Array.isArray(delta?.content)) {
+        return delta.content
+          .map((item) => {
+            if (typeof item === "string") return item;
+            if (typeof item?.text === "string") return item.text;
+            if (typeof item?.content === "string") return item.content;
+            return "";
+          })
+          .filter(Boolean)
+          .join("");
+      }
+
+      if (typeof choice?.message?.content === "string") return choice.message.content;
+      if (typeof choice?.text === "string") return choice.text;
+      if (typeof chunk?.response === "string") return chunk.response;
+      if (typeof chunk?.message === "string") return chunk.message;
+      if (typeof chunk?.content === "string") return chunk.content;
+      return "";
+    })
+    .join("");
+
+  const lastChunk = chunks[chunks.length - 1];
+  if (!mergedText.trim()) return lastChunk;
+
+  const lastChoice = Array.isArray(lastChunk?.choices) ? (lastChunk.choices[0] || {}) : {};
+  return {
+    ...lastChunk,
+    choices: [
+      {
+        ...lastChoice,
+        message: {
+          ...(lastChoice?.message && typeof lastChoice.message === "object" ? lastChoice.message : {}),
+          content: mergedText,
+        },
+      },
+    ],
+  };
+}
+
+function parseApiJsonResponse(text, requestUrl, label, contentType = "") {
   const normalized = String(text || "").trim();
   if (!normalized) {
     throw new Error(`Empty ${label} response from ${requestUrl}`);
@@ -2776,9 +2844,19 @@ function parseApiJsonResponse(text, requestUrl, label) {
   if (/^<!doctype html/i.test(normalized) || /^<html/i.test(normalized) || normalized.startsWith("<")) {
     throw new Error(`The ${label} endpoint returned HTML instead of JSON. Check the URL: ${requestUrl}`);
   }
+
+  const normalizedContentType = String(contentType || "").toLowerCase();
+  if (normalizedContentType.includes("text/event-stream")) {
+    const parsedStream = parseStreamLikeJsonResponse(normalized);
+    if (parsedStream) return parsedStream;
+    throw new Error(`The ${label} endpoint returned an unreadable event stream. Check the URL: ${requestUrl}`);
+  }
+
   try {
     return JSON.parse(normalized);
   } catch {
+    const parsedStream = parseStreamLikeJsonResponse(normalized);
+    if (parsedStream) return parsedStream;
     throw new Error(`The ${label} endpoint returned non-JSON data. Check the URL: ${requestUrl}`);
   }
 }
