@@ -77,6 +77,7 @@ const defaults = {
   macroGlobalVars: {},
   macroChatVars: {},
   customization: {
+    chatStyle: "bubble",
     avatarSize: 40,
     defaultTextColor: "#f5f7fb",
     appFontSource: "system",
@@ -85,6 +86,41 @@ const defaults = {
     appFontDataUrl: "",
     appFontGoogleName: "",
     appFontGoogleCss: "",
+    bubble: {
+      assistantBubbleColor: "#111114",
+      userBubbleColor: "#f1f4fb",
+      showAssistantName: true,
+      showUserName: true,
+      assistantAvatarSize: 40,
+      userAvatarSize: 40,
+      assistantAvatarShape: "cutout",
+      userAvatarShape: "cutout",
+      showAssistantAvatar: true,
+      showUserAvatar: true,
+    },
+    novel: {
+      showAssistantName: true,
+      showUserName: true,
+      showAssistantAvatar: true,
+      showUserAvatar: true,
+      assistantAvatarSize: 64,
+      userAvatarSize: 64,
+      assistantAvatarShape: "cutout",
+      userAvatarShape: "cutout",
+      assistantAvatarAlign: "left",
+      userAvatarAlign: "right",
+      assistantTextFlow: "wrap",
+      userTextFlow: "wrap",
+      assistantBackgroundColor: "#111114",
+      userBackgroundColor: "#151a24",
+      assistantBackgroundImage: "",
+      userBackgroundImage: "",
+      assistantBackgroundBlur: 0,
+      userBackgroundBlur: 0,
+      chatBackgroundColor: "#000000",
+      chatBackgroundImage: "",
+      chatBackgroundBlur: 0,
+    },
     wrapRules: [
       { id: "quotes-double", title: '"..."', start: '"', end: '"', color: "#7dd3fc", enabled: true },
       { id: "asterisk", title: "*...*", start: "*", end: "*", color: "#f9a8d4", enabled: true },
@@ -355,6 +391,48 @@ const els = {
   saveCustomizationBtn: document.getElementById("saveCustomizationBtn"),
   chatCustomizationSectionBtn: document.getElementById("chatCustomizationSectionBtn"),
   chatCustomizationSection: document.getElementById("chatCustomizationSection"),
+  chatStyleSelect: document.getElementById("chatStyleSelect"),
+  bubbleStyleSectionBtn: document.getElementById("bubbleStyleSectionBtn"),
+  bubbleStyleSection: document.getElementById("bubbleStyleSection"),
+  novelStyleSectionBtn: document.getElementById("novelStyleSectionBtn"),
+  novelStyleSection: document.getElementById("novelStyleSection"),
+  bubbleAssistantColorInput: document.getElementById("bubbleAssistantColorInput"),
+  bubbleUserColorInput: document.getElementById("bubbleUserColorInput"),
+  bubbleShowAssistantNameInput: document.getElementById("bubbleShowAssistantNameInput"),
+  bubbleShowUserNameInput: document.getElementById("bubbleShowUserNameInput"),
+  bubbleShowAssistantAvatarInput: document.getElementById("bubbleShowAssistantAvatarInput"),
+  bubbleShowUserAvatarInput: document.getElementById("bubbleShowUserAvatarInput"),
+  bubbleAssistantAvatarSizeInput: document.getElementById("bubbleAssistantAvatarSizeInput"),
+  bubbleUserAvatarSizeInput: document.getElementById("bubbleUserAvatarSizeInput"),
+  bubbleAssistantAvatarShapeInput: document.getElementById("bubbleAssistantAvatarShapeInput"),
+  bubbleUserAvatarShapeInput: document.getElementById("bubbleUserAvatarShapeInput"),
+  novelAssistantColorInput: document.getElementById("novelAssistantColorInput"),
+  novelUserColorInput: document.getElementById("novelUserColorInput"),
+  novelChatBackgroundColorInput: document.getElementById("novelChatBackgroundColorInput"),
+  novelAssistantBlurInput: document.getElementById("novelAssistantBlurInput"),
+  novelUserBlurInput: document.getElementById("novelUserBlurInput"),
+  novelChatBackgroundBlurInput: document.getElementById("novelChatBackgroundBlurInput"),
+  novelShowAssistantNameInput: document.getElementById("novelShowAssistantNameInput"),
+  novelShowUserNameInput: document.getElementById("novelShowUserNameInput"),
+  novelShowAssistantAvatarInput: document.getElementById("novelShowAssistantAvatarInput"),
+  novelShowUserAvatarInput: document.getElementById("novelShowUserAvatarInput"),
+  novelAssistantAvatarSizeInput: document.getElementById("novelAssistantAvatarSizeInput"),
+  novelUserAvatarSizeInput: document.getElementById("novelUserAvatarSizeInput"),
+  novelAssistantAvatarShapeInput: document.getElementById("novelAssistantAvatarShapeInput"),
+  novelUserAvatarShapeInput: document.getElementById("novelUserAvatarShapeInput"),
+  novelAssistantAvatarAlignInput: document.getElementById("novelAssistantAvatarAlignInput"),
+  novelUserAvatarAlignInput: document.getElementById("novelUserAvatarAlignInput"),
+  novelAssistantTextFlowInput: document.getElementById("novelAssistantTextFlowInput"),
+  novelUserTextFlowInput: document.getElementById("novelUserTextFlowInput"),
+  novelAssistantImageBtn: document.getElementById("novelAssistantImageBtn"),
+  novelUserImageBtn: document.getElementById("novelUserImageBtn"),
+  novelChatImageBtn: document.getElementById("novelChatImageBtn"),
+  novelAssistantImageInput: document.getElementById("novelAssistantImageInput"),
+  novelUserImageInput: document.getElementById("novelUserImageInput"),
+  novelChatImageInput: document.getElementById("novelChatImageInput"),
+  novelAssistantImageMeta: document.getElementById("novelAssistantImageMeta"),
+  novelUserImageMeta: document.getElementById("novelUserImageMeta"),
+  novelChatImageMeta: document.getElementById("novelChatImageMeta"),
   avatarSizeSectionBtn: document.getElementById("avatarSizeSectionBtn"),
   avatarSizeSection: document.getElementById("avatarSizeSection"),
   textWrappingSectionBtn: document.getElementById("textWrappingSectionBtn"),
@@ -489,6 +567,71 @@ function ensureCollections() {
   state.customization.appFontDataUrl = typeof state.customization.appFontDataUrl === "string" ? state.customization.appFontDataUrl : "";
   state.customization.appFontGoogleName = typeof state.customization.appFontGoogleName === "string" ? state.customization.appFontGoogleName : "";
   state.customization.appFontGoogleCss = typeof state.customization.appFontGoogleCss === "string" ? state.customization.appFontGoogleCss : "";
+
+  state.customization.chatStyle = state.customization.chatStyle === "novel" ? "novel" : "bubble";
+
+  const bubbleSource = state.customization.bubble && typeof state.customization.bubble === "object"
+    ? state.customization.bubble
+    : {};
+  const novelSource = state.customization.novel && typeof state.customization.novel === "object"
+    ? state.customization.novel
+    : {};
+
+  state.customization.bubble = {
+    ...structuredClone(defaults.customization.bubble),
+    ...bubbleSource,
+  };
+  state.customization.novel = {
+    ...structuredClone(defaults.customization.novel),
+    ...novelSource,
+  };
+
+  const sanitizeAvatarShape = (value, fallback) => (["cutout", "circle", "square", "rectangle"].includes(value) ? value : fallback);
+  const sanitizeAvatarAlign = (value, fallback) => (["left", "center", "right"].includes(value) ? value : fallback);
+  const sanitizeTextFlow = (value, fallback) => (["wrap", "below"].includes(value) ? value : fallback);
+
+  state.customization.bubble.assistantBubbleColor = isValidHexColor(state.customization.bubble.assistantBubbleColor)
+    ? state.customization.bubble.assistantBubbleColor
+    : defaults.customization.bubble.assistantBubbleColor;
+  state.customization.bubble.userBubbleColor = isValidHexColor(state.customization.bubble.userBubbleColor)
+    ? state.customization.bubble.userBubbleColor
+    : defaults.customization.bubble.userBubbleColor;
+  state.customization.bubble.showAssistantName = state.customization.bubble.showAssistantName !== false;
+  state.customization.bubble.showUserName = state.customization.bubble.showUserName !== false;
+  state.customization.bubble.showAssistantAvatar = state.customization.bubble.showAssistantAvatar !== false;
+  state.customization.bubble.showUserAvatar = state.customization.bubble.showUserAvatar !== false;
+  state.customization.bubble.assistantAvatarSize = Math.min(160, Math.max(24, Number.parseInt(state.customization.bubble.assistantAvatarSize, 10) || state.customization.avatarSize || defaults.customization.bubble.assistantAvatarSize));
+  state.customization.bubble.userAvatarSize = Math.min(160, Math.max(24, Number.parseInt(state.customization.bubble.userAvatarSize, 10) || state.customization.avatarSize || defaults.customization.bubble.userAvatarSize));
+  state.customization.bubble.assistantAvatarShape = sanitizeAvatarShape(state.customization.bubble.assistantAvatarShape, defaults.customization.bubble.assistantAvatarShape);
+  state.customization.bubble.userAvatarShape = sanitizeAvatarShape(state.customization.bubble.userAvatarShape, defaults.customization.bubble.userAvatarShape);
+
+  state.customization.novel.showAssistantName = state.customization.novel.showAssistantName !== false;
+  state.customization.novel.showUserName = state.customization.novel.showUserName !== false;
+  state.customization.novel.showAssistantAvatar = state.customization.novel.showAssistantAvatar !== false;
+  state.customization.novel.showUserAvatar = state.customization.novel.showUserAvatar !== false;
+  state.customization.novel.assistantAvatarSize = Math.min(200, Math.max(24, Number.parseInt(state.customization.novel.assistantAvatarSize, 10) || defaults.customization.novel.assistantAvatarSize));
+  state.customization.novel.userAvatarSize = Math.min(200, Math.max(24, Number.parseInt(state.customization.novel.userAvatarSize, 10) || defaults.customization.novel.userAvatarSize));
+  state.customization.novel.assistantAvatarShape = sanitizeAvatarShape(state.customization.novel.assistantAvatarShape, defaults.customization.novel.assistantAvatarShape);
+  state.customization.novel.userAvatarShape = sanitizeAvatarShape(state.customization.novel.userAvatarShape, defaults.customization.novel.userAvatarShape);
+  state.customization.novel.assistantAvatarAlign = sanitizeAvatarAlign(state.customization.novel.assistantAvatarAlign, defaults.customization.novel.assistantAvatarAlign);
+  state.customization.novel.userAvatarAlign = sanitizeAvatarAlign(state.customization.novel.userAvatarAlign, defaults.customization.novel.userAvatarAlign);
+  state.customization.novel.assistantTextFlow = sanitizeTextFlow(state.customization.novel.assistantTextFlow, defaults.customization.novel.assistantTextFlow);
+  state.customization.novel.userTextFlow = sanitizeTextFlow(state.customization.novel.userTextFlow, defaults.customization.novel.userTextFlow);
+  state.customization.novel.assistantBackgroundColor = isValidHexColor(state.customization.novel.assistantBackgroundColor)
+    ? state.customization.novel.assistantBackgroundColor
+    : defaults.customization.novel.assistantBackgroundColor;
+  state.customization.novel.userBackgroundColor = isValidHexColor(state.customization.novel.userBackgroundColor)
+    ? state.customization.novel.userBackgroundColor
+    : defaults.customization.novel.userBackgroundColor;
+  state.customization.novel.chatBackgroundColor = isValidHexColor(state.customization.novel.chatBackgroundColor)
+    ? state.customization.novel.chatBackgroundColor
+    : defaults.customization.novel.chatBackgroundColor;
+  state.customization.novel.assistantBackgroundImage = typeof state.customization.novel.assistantBackgroundImage === "string" ? state.customization.novel.assistantBackgroundImage : "";
+  state.customization.novel.userBackgroundImage = typeof state.customization.novel.userBackgroundImage === "string" ? state.customization.novel.userBackgroundImage : "";
+  state.customization.novel.chatBackgroundImage = typeof state.customization.novel.chatBackgroundImage === "string" ? state.customization.novel.chatBackgroundImage : "";
+  state.customization.novel.assistantBackgroundBlur = Math.min(32, Math.max(0, Number.parseInt(state.customization.novel.assistantBackgroundBlur, 10) || 0));
+  state.customization.novel.userBackgroundBlur = Math.min(32, Math.max(0, Number.parseInt(state.customization.novel.userBackgroundBlur, 10) || 0));
+  state.customization.novel.chatBackgroundBlur = Math.min(32, Math.max(0, Number.parseInt(state.customization.novel.chatBackgroundBlur, 10) || 0));
 
   if (state.activeProviderId && !state.providers.some((provider) => provider.id === state.activeProviderId)) {
     state.activeProviderId = "";
@@ -632,6 +775,9 @@ function bindEvents() {
   els.impersonateSelect?.addEventListener("change", onImpersonationChange);
   els.saveCustomizationBtn?.addEventListener("click", saveCustomization);
   els.chatCustomizationSectionBtn?.addEventListener("click", () => toggleSection(els.chatCustomizationSection));
+  els.chatStyleSelect?.addEventListener("change", onChatStyleSelectChange);
+  els.bubbleStyleSectionBtn?.addEventListener("click", () => toggleSection(els.bubbleStyleSection));
+  els.novelStyleSectionBtn?.addEventListener("click", () => toggleSection(els.novelStyleSection));
   els.avatarSizeSectionBtn?.addEventListener("click", () => toggleSection(els.avatarSizeSection));
   els.textWrappingSectionBtn?.addEventListener("click", () => toggleSection(els.textWrappingSection));
   els.addWrapRuleBtn?.addEventListener("click", createWrapRule);
@@ -661,6 +807,13 @@ function bindEvents() {
   els.wrapRuleColorInput?.addEventListener("input", onWrapRuleColorInputChange);
   els.wrapRuleHexInput?.addEventListener("input", onWrapRuleHexInputChange);
   els.wrapRuleSearchInput?.addEventListener("input", onWrapRuleSearchInput);
+
+  els.novelAssistantImageBtn?.addEventListener("click", () => els.novelAssistantImageInput?.click());
+  els.novelUserImageBtn?.addEventListener("click", () => els.novelUserImageInput?.click());
+  els.novelChatImageBtn?.addEventListener("click", () => els.novelChatImageInput?.click());
+  els.novelAssistantImageInput?.addEventListener("change", (event) => onNovelImageSelected(event, "assistant"));
+  els.novelUserImageInput?.addEventListener("change", (event) => onNovelImageSelected(event, "user"));
+  els.novelChatImageInput?.addEventListener("change", (event) => onNovelImageSelected(event, "chat"));
 
   els.exportDataBtn?.addEventListener("click", exportUserDataZip);
   els.importDataBtn?.addEventListener("click", () => els.importDataInput?.click());
@@ -3126,7 +3279,29 @@ function renderMessages() {
     const avatar = row.querySelector(".message-avatar");
     const bubble = row.querySelector(".message");
     bubble.classList.add(msg.role);
-    row.querySelector(".message-role").textContent = getMessageDisplayRole(msg);
+
+    const style = getActiveChatStyle();
+    row.dataset.chatStyle = style;
+    const roleEl = row.querySelector(".message-role");
+    const roleLabel = getMessageDisplayRole(msg);
+    roleEl.textContent = roleLabel;
+    roleEl.classList.toggle("hidden", !roleLabel);
+
+    const showAvatar = shouldShowMessageAvatar(msg);
+    row.dataset.hasAvatar = showAvatar ? "1" : "0";
+    avatar.classList.toggle("hidden", !showAvatar);
+    avatar.classList.remove("shape-cutout", "shape-circle", "shape-square", "shape-rectangle");
+    const avatarShape = getMessageAvatarShape(msg);
+    avatar.classList.add(`shape-${avatarShape}`);
+    const avatarSize = getMessageAvatarSize(msg);
+    const avatarWidth = avatarShape === "rectangle" ? Math.round(avatarSize * 1.28) : avatarSize;
+    avatar.style.width = `${avatarWidth}px`;
+    avatar.style.height = `${avatarSize}px`;
+    row.style.setProperty("--message-avatar-size", `${avatarSize}px`);
+
+    const novelAlign = getMessageAvatarAlign(msg);
+    row.dataset.novelAvatarAlign = novelAlign;
+    row.dataset.novelTextFlow = getMessageTextFlow(msg);
 
     const activeContent = getMessageSwipeContent(msg);
     const isExpanded = expandedMessageMenuIndex === index;
@@ -4707,9 +4882,57 @@ function renderCharacterAvatarPreview(avatarDataUrl) {
 }
 
 function syncCustomizationInputs() {
+  if (els.chatStyleSelect) els.chatStyleSelect.value = state.customization.chatStyle || "bubble";
   if (els.avatarSizeInput) els.avatarSizeInput.value = state.customization.avatarSize;
   if (els.defaultTextColorInput) els.defaultTextColorInput.value = state.customization.defaultTextColor;
   if (els.wrapRuleSearchInput) els.wrapRuleSearchInput.value = wrapRuleSearchQuery;
+
+  if (els.bubbleAssistantColorInput) els.bubbleAssistantColorInput.value = state.customization.bubble.assistantBubbleColor;
+  if (els.bubbleUserColorInput) els.bubbleUserColorInput.value = state.customization.bubble.userBubbleColor;
+  if (els.bubbleShowAssistantNameInput) els.bubbleShowAssistantNameInput.checked = state.customization.bubble.showAssistantName !== false;
+  if (els.bubbleShowUserNameInput) els.bubbleShowUserNameInput.checked = state.customization.bubble.showUserName !== false;
+  if (els.bubbleShowAssistantAvatarInput) els.bubbleShowAssistantAvatarInput.checked = state.customization.bubble.showAssistantAvatar !== false;
+  if (els.bubbleShowUserAvatarInput) els.bubbleShowUserAvatarInput.checked = state.customization.bubble.showUserAvatar !== false;
+  if (els.bubbleAssistantAvatarSizeInput) els.bubbleAssistantAvatarSizeInput.value = String(state.customization.bubble.assistantAvatarSize || 40);
+  if (els.bubbleUserAvatarSizeInput) els.bubbleUserAvatarSizeInput.value = String(state.customization.bubble.userAvatarSize || 40);
+  if (els.bubbleAssistantAvatarShapeInput) els.bubbleAssistantAvatarShapeInput.value = state.customization.bubble.assistantAvatarShape || "cutout";
+  if (els.bubbleUserAvatarShapeInput) els.bubbleUserAvatarShapeInput.value = state.customization.bubble.userAvatarShape || "cutout";
+
+  if (els.novelAssistantColorInput) els.novelAssistantColorInput.value = state.customization.novel.assistantBackgroundColor;
+  if (els.novelUserColorInput) els.novelUserColorInput.value = state.customization.novel.userBackgroundColor;
+  if (els.novelChatBackgroundColorInput) els.novelChatBackgroundColorInput.value = state.customization.novel.chatBackgroundColor;
+  if (els.novelAssistantBlurInput) els.novelAssistantBlurInput.value = String(state.customization.novel.assistantBackgroundBlur || 0);
+  if (els.novelUserBlurInput) els.novelUserBlurInput.value = String(state.customization.novel.userBackgroundBlur || 0);
+  if (els.novelChatBackgroundBlurInput) els.novelChatBackgroundBlurInput.value = String(state.customization.novel.chatBackgroundBlur || 0);
+  if (els.novelShowAssistantNameInput) els.novelShowAssistantNameInput.checked = state.customization.novel.showAssistantName !== false;
+  if (els.novelShowUserNameInput) els.novelShowUserNameInput.checked = state.customization.novel.showUserName !== false;
+  if (els.novelShowAssistantAvatarInput) els.novelShowAssistantAvatarInput.checked = state.customization.novel.showAssistantAvatar !== false;
+  if (els.novelShowUserAvatarInput) els.novelShowUserAvatarInput.checked = state.customization.novel.showUserAvatar !== false;
+  if (els.novelAssistantAvatarSizeInput) els.novelAssistantAvatarSizeInput.value = String(state.customization.novel.assistantAvatarSize || 64);
+  if (els.novelUserAvatarSizeInput) els.novelUserAvatarSizeInput.value = String(state.customization.novel.userAvatarSize || 64);
+  if (els.novelAssistantAvatarShapeInput) els.novelAssistantAvatarShapeInput.value = state.customization.novel.assistantAvatarShape || "cutout";
+  if (els.novelUserAvatarShapeInput) els.novelUserAvatarShapeInput.value = state.customization.novel.userAvatarShape || "cutout";
+  if (els.novelAssistantAvatarAlignInput) els.novelAssistantAvatarAlignInput.value = state.customization.novel.assistantAvatarAlign || "left";
+  if (els.novelUserAvatarAlignInput) els.novelUserAvatarAlignInput.value = state.customization.novel.userAvatarAlign || "left";
+  if (els.novelAssistantTextFlowInput) els.novelAssistantTextFlowInput.value = state.customization.novel.assistantTextFlow || "wrap";
+  if (els.novelUserTextFlowInput) els.novelUserTextFlowInput.value = state.customization.novel.userTextFlow || "wrap";
+
+  if (els.novelAssistantImageMeta) {
+    els.novelAssistantImageMeta.textContent = state.customization.novel.assistantBackgroundImage
+      ? "Assistant image: selected"
+      : "Assistant image: none";
+  }
+  if (els.novelUserImageMeta) {
+    els.novelUserImageMeta.textContent = state.customization.novel.userBackgroundImage
+      ? "User image: selected"
+      : "User image: none";
+  }
+  if (els.novelChatImageMeta) {
+    els.novelChatImageMeta.textContent = state.customization.novel.chatBackgroundImage
+      ? "Chat image: selected"
+      : "Chat image: none";
+  }
+
   if (els.googleFontSearchInput && state.customization.appFontSource === "google") {
     els.googleFontSearchInput.value = state.customization.appFontGoogleName || state.customization.appFontFamily || "";
   }
@@ -4722,6 +4945,7 @@ function syncCustomizationInputs() {
       els.uploadedFontMeta.textContent = "Using system default font.";
     }
   }
+  syncChatStyleSectionVisibility();
   updateCurrentFontLabel();
 }
 
@@ -4862,7 +5086,11 @@ function toggleSection(element) {
   if (!element) return;
   element.classList.toggle("hidden");
   if (element.classList.contains("hidden")) return;
-  if (element === els.chatCustomizationSection || element === els.textWrappingSection || element === els.textFontSection) {
+  if (
+    element === els.chatCustomizationSection
+    || element === els.textWrappingSection
+    || element === els.textFontSection
+  ) {
     syncCustomizationInputs();
     renderWrapRuleList();
   }
@@ -4872,8 +5100,55 @@ function toggleSection(element) {
 }
 
 function applyCustomization() {
-  document.documentElement.style.setProperty("--chat-avatar-size", `${state.customization.avatarSize}px`);
-  document.documentElement.style.setProperty("--chat-default-text-color", state.customization.defaultTextColor);
+  const custom = state.customization;
+  const bubble = custom.bubble || defaults.customization.bubble;
+  const novel = custom.novel || defaults.customization.novel;
+  const style = custom.chatStyle === "novel" ? "novel" : "bubble";
+
+  document.documentElement.dataset.chatStyle = style;
+  document.documentElement.style.setProperty("--chat-avatar-size", `${custom.avatarSize}px`);
+  document.documentElement.style.setProperty("--chat-default-text-color", custom.defaultTextColor);
+
+  document.documentElement.style.setProperty("--chat-bubble-assistant-bg", bubble.assistantBubbleColor || defaults.customization.bubble.assistantBubbleColor);
+  document.documentElement.style.setProperty("--chat-bubble-user-bg", bubble.userBubbleColor || defaults.customization.bubble.userBubbleColor);
+  document.documentElement.style.setProperty("--chat-bubble-assistant-avatar-size", `${bubble.assistantAvatarSize || custom.avatarSize}px`);
+  document.documentElement.style.setProperty("--chat-bubble-user-avatar-size", `${bubble.userAvatarSize || custom.avatarSize}px`);
+
+  document.documentElement.style.setProperty("--chat-novel-assistant-bg", novel.assistantBackgroundColor || defaults.customization.novel.assistantBackgroundColor);
+  document.documentElement.style.setProperty("--chat-novel-user-bg", novel.userBackgroundColor || defaults.customization.novel.userBackgroundColor);
+  document.documentElement.style.setProperty("--chat-novel-bg", novel.chatBackgroundColor || defaults.customization.novel.chatBackgroundColor);
+  document.documentElement.style.setProperty("--chat-novel-assistant-avatar-size", `${novel.assistantAvatarSize || 64}px`);
+  document.documentElement.style.setProperty("--chat-novel-user-avatar-size", `${novel.userAvatarSize || 64}px`);
+  document.documentElement.style.setProperty("--chat-novel-assistant-blur", `${novel.assistantBackgroundBlur || 0}px`);
+  document.documentElement.style.setProperty("--chat-novel-user-blur", `${novel.userBackgroundBlur || 0}px`);
+  document.documentElement.style.setProperty("--chat-novel-bg-blur", `${novel.chatBackgroundBlur || 0}px`);
+
+  document.documentElement.style.setProperty("--chat-novel-assistant-avatar-align", novel.assistantAvatarAlign || "left");
+  document.documentElement.style.setProperty("--chat-novel-user-avatar-align", novel.userAvatarAlign || "left");
+
+  const assistantWidth = novel.assistantTextFlow === "below"
+    ? "100%"
+    : "calc(100% - var(--chat-novel-assistant-avatar-size, 64px) - 10px)";
+  const userWidth = novel.userTextFlow === "below"
+    ? "100%"
+    : "calc(100% - var(--chat-novel-user-avatar-size, 64px) - 10px)";
+  document.documentElement.style.setProperty("--chat-novel-assistant-content-width", assistantWidth);
+  document.documentElement.style.setProperty("--chat-novel-user-content-width", userWidth);
+
+  const assistantBackgroundImage = novel.assistantBackgroundImage
+    ? `linear-gradient(180deg, rgba(0,0,0,0.34), rgba(0,0,0,0.34)), url(${JSON.stringify(novel.assistantBackgroundImage)})`
+    : novel.assistantBackgroundColor;
+  const userBackgroundImage = novel.userBackgroundImage
+    ? `linear-gradient(180deg, rgba(0,0,0,0.34), rgba(0,0,0,0.34)), url(${JSON.stringify(novel.userBackgroundImage)})`
+    : novel.userBackgroundColor;
+  const chatBackgroundImage = novel.chatBackgroundImage
+    ? `linear-gradient(180deg, rgba(0,0,0,0.38), rgba(0,0,0,0.38)), url(${JSON.stringify(novel.chatBackgroundImage)})`
+    : novel.chatBackgroundColor;
+
+  document.documentElement.style.setProperty("--chat-novel-assistant-bg-image", assistantBackgroundImage);
+  document.documentElement.style.setProperty("--chat-novel-user-bg-image", userBackgroundImage);
+  document.documentElement.style.setProperty("--chat-novel-bg-image", chatBackgroundImage);
+
   applyWrapRuleCssVariables();
   applyAppFont();
   updateCurrentFontLabel();
@@ -4884,8 +5159,63 @@ function saveCustomization() {
     showToast("Customisation controls are unavailable", "error");
     return;
   }
+
+  const bubble = state.customization.bubble || {};
+  const novel = state.customization.novel || {};
+
+  state.customization.chatStyle = (els.chatStyleSelect?.value === "novel") ? "novel" : "bubble";
   state.customization.avatarSize = Math.min(120, Math.max(24, Number.parseInt(els.avatarSizeInput.value, 10) || defaults.customization.avatarSize));
   state.customization.defaultTextColor = els.defaultTextColorInput.value || defaults.customization.defaultTextColor;
+
+  bubble.assistantBubbleColor = isValidHexColor(els.bubbleAssistantColorInput?.value) ? els.bubbleAssistantColorInput.value : defaults.customization.bubble.assistantBubbleColor;
+  bubble.userBubbleColor = isValidHexColor(els.bubbleUserColorInput?.value) ? els.bubbleUserColorInput.value : defaults.customization.bubble.userBubbleColor;
+  bubble.showAssistantName = Boolean(els.bubbleShowAssistantNameInput?.checked);
+  bubble.showUserName = Boolean(els.bubbleShowUserNameInput?.checked);
+  bubble.showAssistantAvatar = Boolean(els.bubbleShowAssistantAvatarInput?.checked);
+  bubble.showUserAvatar = Boolean(els.bubbleShowUserAvatarInput?.checked);
+  bubble.assistantAvatarSize = Math.min(160, Math.max(24, Number.parseInt(els.bubbleAssistantAvatarSizeInput?.value, 10) || state.customization.avatarSize));
+  bubble.userAvatarSize = Math.min(160, Math.max(24, Number.parseInt(els.bubbleUserAvatarSizeInput?.value, 10) || state.customization.avatarSize));
+  bubble.assistantAvatarShape = ["cutout", "circle", "square", "rectangle"].includes(els.bubbleAssistantAvatarShapeInput?.value)
+    ? els.bubbleAssistantAvatarShapeInput.value
+    : defaults.customization.bubble.assistantAvatarShape;
+  bubble.userAvatarShape = ["cutout", "circle", "square", "rectangle"].includes(els.bubbleUserAvatarShapeInput?.value)
+    ? els.bubbleUserAvatarShapeInput.value
+    : defaults.customization.bubble.userAvatarShape;
+
+  novel.assistantBackgroundColor = isValidHexColor(els.novelAssistantColorInput?.value) ? els.novelAssistantColorInput.value : defaults.customization.novel.assistantBackgroundColor;
+  novel.userBackgroundColor = isValidHexColor(els.novelUserColorInput?.value) ? els.novelUserColorInput.value : defaults.customization.novel.userBackgroundColor;
+  novel.chatBackgroundColor = isValidHexColor(els.novelChatBackgroundColorInput?.value) ? els.novelChatBackgroundColorInput.value : defaults.customization.novel.chatBackgroundColor;
+  novel.assistantBackgroundBlur = Math.min(32, Math.max(0, Number.parseInt(els.novelAssistantBlurInput?.value, 10) || 0));
+  novel.userBackgroundBlur = Math.min(32, Math.max(0, Number.parseInt(els.novelUserBlurInput?.value, 10) || 0));
+  novel.chatBackgroundBlur = Math.min(32, Math.max(0, Number.parseInt(els.novelChatBackgroundBlurInput?.value, 10) || 0));
+  novel.showAssistantName = Boolean(els.novelShowAssistantNameInput?.checked);
+  novel.showUserName = Boolean(els.novelShowUserNameInput?.checked);
+  novel.showAssistantAvatar = Boolean(els.novelShowAssistantAvatarInput?.checked);
+  novel.showUserAvatar = Boolean(els.novelShowUserAvatarInput?.checked);
+  novel.assistantAvatarSize = Math.min(200, Math.max(24, Number.parseInt(els.novelAssistantAvatarSizeInput?.value, 10) || defaults.customization.novel.assistantAvatarSize));
+  novel.userAvatarSize = Math.min(200, Math.max(24, Number.parseInt(els.novelUserAvatarSizeInput?.value, 10) || defaults.customization.novel.userAvatarSize));
+  novel.assistantAvatarShape = ["cutout", "circle", "square", "rectangle"].includes(els.novelAssistantAvatarShapeInput?.value)
+    ? els.novelAssistantAvatarShapeInput.value
+    : defaults.customization.novel.assistantAvatarShape;
+  novel.userAvatarShape = ["cutout", "circle", "square", "rectangle"].includes(els.novelUserAvatarShapeInput?.value)
+    ? els.novelUserAvatarShapeInput.value
+    : defaults.customization.novel.userAvatarShape;
+  novel.assistantAvatarAlign = ["left", "center", "right"].includes(els.novelAssistantAvatarAlignInput?.value)
+    ? els.novelAssistantAvatarAlignInput.value
+    : defaults.customization.novel.assistantAvatarAlign;
+  novel.userAvatarAlign = ["left", "center", "right"].includes(els.novelUserAvatarAlignInput?.value)
+    ? els.novelUserAvatarAlignInput.value
+    : defaults.customization.novel.userAvatarAlign;
+  novel.assistantTextFlow = ["wrap", "below"].includes(els.novelAssistantTextFlowInput?.value)
+    ? els.novelAssistantTextFlowInput.value
+    : defaults.customization.novel.assistantTextFlow;
+  novel.userTextFlow = ["wrap", "below"].includes(els.novelUserTextFlowInput?.value)
+    ? els.novelUserTextFlowInput.value
+    : defaults.customization.novel.userTextFlow;
+
+  state.customization.bubble = bubble;
+  state.customization.novel = novel;
+
   persistState();
   syncCustomizationInputs();
   applyCustomization();
@@ -4935,6 +5265,48 @@ function applyWrapRuleCssVariables() {
   state.customization.wrapRules.forEach((rule, index) => {
     document.documentElement.style.setProperty(`--chat-wrap-color-${index}`, rule.color || "#c084fc");
   });
+}
+
+function syncChatStyleSectionVisibility() {
+  const style = state.customization.chatStyle === "novel" ? "novel" : "bubble";
+  if (els.bubbleStyleSection) {
+    els.bubbleStyleSection.classList.toggle("hidden", style !== "bubble");
+  }
+  if (els.novelStyleSection) {
+    els.novelStyleSection.classList.toggle("hidden", style !== "novel");
+  }
+}
+
+function onChatStyleSelectChange() {
+  state.customization.chatStyle = els.chatStyleSelect?.value === "novel" ? "novel" : "bubble";
+  syncChatStyleSectionVisibility();
+  persistState();
+  applyCustomization();
+  renderMessages();
+}
+
+async function onNovelImageSelected(event, target) {
+  const [file] = event?.target?.files || [];
+  if (!file) return;
+  try {
+    const dataUrl = await readFileAsDataUrl(file);
+    if (target === "assistant") {
+      state.customization.novel.assistantBackgroundImage = dataUrl;
+    } else if (target === "user") {
+      state.customization.novel.userBackgroundImage = dataUrl;
+    } else {
+      state.customization.novel.chatBackgroundImage = dataUrl;
+    }
+    persistState();
+    syncCustomizationInputs();
+    applyCustomization();
+    renderMessages();
+    showToast("Background image applied", "success");
+  } catch {
+    showToast("Failed to load image", "error");
+  } finally {
+    if (event?.target) event.target.value = "";
+  }
 }
 
 function openTextFontManager() {
@@ -5340,12 +5712,65 @@ function setElementBackgroundImage(element, rawUrl) {
   element.style.backgroundImage = `url(${JSON.stringify(url)})`;
 }
 
+function getActiveChatStyle() {
+  return state.customization?.chatStyle === "novel" ? "novel" : "bubble";
+}
+
+function shouldShowMessageAvatar(msg) {
+  if (!msg || (msg.role !== "assistant" && msg.role !== "user")) return false;
+  const style = getActiveChatStyle();
+  const custom = style === "novel" ? state.customization.novel : state.customization.bubble;
+  if (msg.role === "assistant") return custom?.showAssistantAvatar !== false;
+  if (msg.role === "user") return custom?.showUserAvatar !== false;
+  return false;
+}
+
+function getMessageAvatarSize(msg) {
+  if (!msg || (msg.role !== "assistant" && msg.role !== "user")) return state.customization.avatarSize || 40;
+  const style = getActiveChatStyle();
+  const custom = style === "novel" ? state.customization.novel : state.customization.bubble;
+  if (msg.role === "assistant") return Number(custom?.assistantAvatarSize || state.customization.avatarSize || 40);
+  if (msg.role === "user") return Number(custom?.userAvatarSize || state.customization.avatarSize || 40);
+  return state.customization.avatarSize || 40;
+}
+
+function getMessageAvatarShape(msg) {
+  if (!msg || (msg.role !== "assistant" && msg.role !== "user")) return "cutout";
+  const style = getActiveChatStyle();
+  const custom = style === "novel" ? state.customization.novel : state.customization.bubble;
+  if (msg.role === "assistant") return custom?.assistantAvatarShape || "cutout";
+  if (msg.role === "user") return custom?.userAvatarShape || "cutout";
+  return "cutout";
+}
+
+function getMessageAvatarAlign(msg) {
+  if (!msg || (msg.role !== "assistant" && msg.role !== "user")) return "left";
+  const style = getActiveChatStyle();
+  if (style !== "novel") {
+    return msg.role === "user" ? "right" : "left";
+  }
+  const custom = state.customization.novel || {};
+  if (msg.role === "assistant") return custom.assistantAvatarAlign || "left";
+  if (msg.role === "user") return custom.userAvatarAlign || "left";
+  return "left";
+}
+
+function getMessageTextFlow(msg) {
+  if (!msg || (msg.role !== "assistant" && msg.role !== "user")) return "wrap";
+  const style = getActiveChatStyle();
+  if (style !== "novel") return "wrap";
+  const custom = state.customization.novel || {};
+  if (msg.role === "assistant") return custom.assistantTextFlow || "wrap";
+  if (msg.role === "user") return custom.userTextFlow || "wrap";
+  return "wrap";
+}
+
 function getMessageAvatar(msg) {
   if (msg.role === "assistant") {
     return getCharacterAvatarUrl(getCurrentChatCharacter()) || readAvatarCandidate(msg?.avatarDataUrl);
   }
   if (msg.role === "user") {
-    const selectedCharacter = state.characters.find((character) => character.id === els.impersonateSelect.value);
+    const selectedCharacter = state.characters.find((character) => character.id === els.impersonateSelect?.value);
     return getCharacterAvatarUrl(selectedCharacter);
   }
   return "";
@@ -5353,10 +5778,20 @@ function getMessageAvatar(msg) {
 
 function getMessageDisplayRole(msg) {
   if (msg.role === "assistant") {
+    const style = getActiveChatStyle();
+    const show = style === "novel"
+      ? state.customization.novel?.showAssistantName !== false
+      : state.customization.bubble?.showAssistantName !== false;
+    if (!show) return "";
     return getCurrentChatCharacter()?.name || "assistant";
   }
   if (msg.role === "user") {
-    const selectedCharacter = state.characters.find((character) => character.id === els.impersonateSelect.value);
+    const style = getActiveChatStyle();
+    const show = style === "novel"
+      ? state.customization.novel?.showUserName !== false
+      : state.customization.bubble?.showUserName !== false;
+    if (!show) return "";
+    const selectedCharacter = state.characters.find((character) => character.id === els.impersonateSelect?.value);
     return selectedCharacter?.name || "user";
   }
   return msg.role;

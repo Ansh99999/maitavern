@@ -304,16 +304,206 @@
           <section class="provider-form-card collapsible-card">
             <button id="chatCustomizationSectionBtn" class="drawer-link collapsible-trigger" type="button">Chat customisation</button>
             <div id="chatCustomizationSection" class="collapsible-panel hidden">
+              <section class="provider-form-card popdown-editor">
+                <div class="field-grid">
+                  <label class="field">
+                    <span>Chat style</span>
+                    <select id="chatStyleSelect">
+                      <option value="bubble">Bubble message</option>
+                      <option value="novel">Novel style</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="button-row">
+                  <button id="bubbleStyleSectionBtn" class="secondary collapsible-trigger" type="button">Bubble message style</button>
+                  <button id="novelStyleSectionBtn" class="secondary collapsible-trigger" type="button">Novel style</button>
+                </div>
+              </section>
+
+              <div id="bubbleStyleSection" class="collapsible-panel hidden">
+                <section class="provider-form-card popdown-editor">
+                  <div class="field-grid">
+                    <label class="field">
+                      <span>Assistant bubble color</span>
+                      <input id="bubbleAssistantColorInput" type="color" />
+                    </label>
+                    <label class="field">
+                      <span>User bubble color</span>
+                      <input id="bubbleUserColorInput" type="color" />
+                    </label>
+                    <label class="field checkbox-field">
+                      <span>Show assistant name</span>
+                      <input id="bubbleShowAssistantNameInput" type="checkbox" />
+                    </label>
+                    <label class="field checkbox-field">
+                      <span>Show user name</span>
+                      <input id="bubbleShowUserNameInput" type="checkbox" />
+                    </label>
+                    <label class="field checkbox-field">
+                      <span>Show assistant avatar</span>
+                      <input id="bubbleShowAssistantAvatarInput" type="checkbox" />
+                    </label>
+                    <label class="field checkbox-field">
+                      <span>Show user avatar</span>
+                      <input id="bubbleShowUserAvatarInput" type="checkbox" />
+                    </label>
+                    <label class="field">
+                      <span>Assistant avatar size (px)</span>
+                      <input id="bubbleAssistantAvatarSizeInput" type="number" min="24" max="160" step="1" />
+                    </label>
+                    <label class="field">
+                      <span>User avatar size (px)</span>
+                      <input id="bubbleUserAvatarSizeInput" type="number" min="24" max="160" step="1" />
+                    </label>
+                    <label class="field">
+                      <span>Assistant avatar shape</span>
+                      <select id="bubbleAssistantAvatarShapeInput">
+                        <option value="cutout">Cutout</option>
+                        <option value="circle">Circle</option>
+                        <option value="square">Square</option>
+                        <option value="rectangle">Rectangle</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span>User avatar shape</span>
+                      <select id="bubbleUserAvatarShapeInput">
+                        <option value="cutout">Cutout</option>
+                        <option value="circle">Circle</option>
+                        <option value="square">Square</option>
+                        <option value="rectangle">Rectangle</option>
+                      </select>
+                    </label>
+                  </div>
+                </section>
+              </div>
+
+              <div id="novelStyleSection" class="collapsible-panel hidden">
+                <section class="provider-form-card popdown-editor">
+                  <div class="field-grid">
+                    <label class="field">
+                      <span>Assistant message background color</span>
+                      <input id="novelAssistantColorInput" type="color" />
+                    </label>
+                    <label class="field">
+                      <span>User message background color</span>
+                      <input id="novelUserColorInput" type="color" />
+                    </label>
+                    <label class="field">
+                      <span>Chat background color</span>
+                      <input id="novelChatBackgroundColorInput" type="color" />
+                    </label>
+                    <label class="field">
+                      <span>Assistant blur (px)</span>
+                      <input id="novelAssistantBlurInput" type="number" min="0" max="32" step="1" />
+                    </label>
+                    <label class="field">
+                      <span>User blur (px)</span>
+                      <input id="novelUserBlurInput" type="number" min="0" max="32" step="1" />
+                    </label>
+                    <label class="field">
+                      <span>Chat background blur (px)</span>
+                      <input id="novelChatBackgroundBlurInput" type="number" min="0" max="32" step="1" />
+                    </label>
+                    <label class="field checkbox-field">
+                      <span>Show assistant name</span>
+                      <input id="novelShowAssistantNameInput" type="checkbox" />
+                    </label>
+                    <label class="field checkbox-field">
+                      <span>Show user name</span>
+                      <input id="novelShowUserNameInput" type="checkbox" />
+                    </label>
+                    <label class="field checkbox-field">
+                      <span>Show assistant avatar</span>
+                      <input id="novelShowAssistantAvatarInput" type="checkbox" />
+                    </label>
+                    <label class="field checkbox-field">
+                      <span>Show user avatar</span>
+                      <input id="novelShowUserAvatarInput" type="checkbox" />
+                    </label>
+                    <label class="field">
+                      <span>Assistant avatar size (px)</span>
+                      <input id="novelAssistantAvatarSizeInput" type="number" min="24" max="200" step="1" />
+                    </label>
+                    <label class="field">
+                      <span>User avatar size (px)</span>
+                      <input id="novelUserAvatarSizeInput" type="number" min="24" max="200" step="1" />
+                    </label>
+                    <label class="field">
+                      <span>Assistant avatar shape</span>
+                      <select id="novelAssistantAvatarShapeInput">
+                        <option value="cutout">Cutout</option>
+                        <option value="circle">Circle</option>
+                        <option value="square">Square</option>
+                        <option value="rectangle">Rectangle</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span>User avatar shape</span>
+                      <select id="novelUserAvatarShapeInput">
+                        <option value="cutout">Cutout</option>
+                        <option value="circle">Circle</option>
+                        <option value="square">Square</option>
+                        <option value="rectangle">Rectangle</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span>Assistant avatar position</span>
+                      <select id="novelAssistantAvatarAlignInput">
+                        <option value="left">Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span>User avatar position</span>
+                      <select id="novelUserAvatarAlignInput">
+                        <option value="left">Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span>Assistant text flow</span>
+                      <select id="novelAssistantTextFlowInput">
+                        <option value="wrap">Wrap around avatar</option>
+                        <option value="below">Start below avatar</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span>User text flow</span>
+                      <select id="novelUserTextFlowInput">
+                        <option value="wrap">Wrap around avatar</option>
+                        <option value="below">Start below avatar</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="button-row">
+                    <button id="novelAssistantImageBtn" class="secondary" type="button">Assistant background image</button>
+                    <button id="novelUserImageBtn" class="secondary" type="button">User background image</button>
+                    <button id="novelChatImageBtn" class="secondary" type="button">Chat background image</button>
+                  </div>
+                  <div class="field-grid">
+                    <p id="novelAssistantImageMeta" class="entity-meta">Assistant image: none</p>
+                    <p id="novelUserImageMeta" class="entity-meta">User image: none</p>
+                    <p id="novelChatImageMeta" class="entity-meta">Chat image: none</p>
+                  </div>
+                  <input id="novelAssistantImageInput" type="file" accept="image/*" class="hidden" />
+                  <input id="novelUserImageInput" type="file" accept="image/*" class="hidden" />
+                  <input id="novelChatImageInput" type="file" accept="image/*" class="hidden" />
+                </section>
+              </div>
+
               <div class="button-row">
-                <button id="avatarSizeSectionBtn" class="secondary collapsible-trigger" type="button">Avatar size</button>
+                <button id="avatarSizeSectionBtn" class="secondary collapsible-trigger" type="button">Global avatar size</button>
                 <button id="textWrappingSectionBtn" class="secondary collapsible-trigger" type="button">Text wrapping</button>
                 <button id="textFontSectionBtn" class="secondary collapsible-trigger" type="button">Text font</button>
               </div>
+
               <div id="avatarSizeSection" class="collapsible-panel hidden">
                 <section id="avatarSizeEditor" class="provider-form-card popdown-editor">
                   <div class="field-grid">
                     <label class="field">
-                      <span>Avatar size (px)</span>
+                      <span>Global avatar size (px)</span>
                       <input id="avatarSizeInput" type="number" min="24" max="120" step="1" placeholder="40" />
                     </label>
                   </div>
@@ -322,6 +512,7 @@
                   </div>
                 </section>
               </div>
+
               <div id="textWrappingSection" class="collapsible-panel hidden">
                 <section class="provider-form-card popdown-editor">
                   <div class="field-grid">
@@ -369,6 +560,7 @@
                 </section>
                 <section id="wrapRuleList" class="entity-list compact-entity-list"></section>
               </div>
+
               <div id="textFontSection" class="collapsible-panel hidden">
                 <section class="provider-form-card popdown-editor">
                   <p class="entity-meta">Current app font: <strong id="currentFontName">System default (Inter stack)</strong></p>

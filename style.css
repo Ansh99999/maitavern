@@ -16,6 +16,23 @@
   --chat-quote-color: #7dd3fc;
   --chat-asterisk-color: #f9a8d4;
   --chat-custom-wrap-color: #c084fc;
+  --chat-bubble-assistant-bg: #111114;
+  --chat-bubble-user-bg: #f1f4fb;
+  --chat-bubble-assistant-avatar-size: 40px;
+  --chat-bubble-user-avatar-size: 40px;
+  --chat-novel-assistant-bg: #111114;
+  --chat-novel-user-bg: #151a24;
+  --chat-novel-bg: #000000;
+  --chat-novel-assistant-bg-image: #111114;
+  --chat-novel-user-bg-image: #151a24;
+  --chat-novel-bg-image: #000000;
+  --chat-novel-assistant-avatar-size: 64px;
+  --chat-novel-user-avatar-size: 64px;
+  --chat-novel-assistant-blur: 0px;
+  --chat-novel-user-blur: 0px;
+  --chat-novel-bg-blur: 0px;
+  --chat-novel-assistant-content-width: calc(100% - var(--chat-novel-assistant-avatar-size) - 10px);
+  --chat-novel-user-content-width: calc(100% - var(--chat-novel-user-avatar-size) - 10px);
   --app-font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -619,6 +636,27 @@ svg {
   overflow: hidden;
 }
 
+.chat-view-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-chat-style="novel"] .chat-view-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--chat-novel-bg-image);
+  background-size: cover;
+  background-position: center;
+  filter: blur(var(--chat-novel-bg-blur));
+  transform: scale(1.03);
+}
+
+html[data-chat-style="novel"] .chat-view-shell {
+  background: var(--chat-novel-bg);
+}
+
 .app-shell.chat-fullscreen {
   grid-template-rows: 1fr;
 }
@@ -696,6 +734,23 @@ svg {
   flex: 0 0 auto;
 }
 
+.message-avatar.shape-cutout {
+  border-radius: calc(var(--message-avatar-size, var(--chat-avatar-size)) * 0.35);
+}
+
+.message-avatar.shape-circle {
+  border-radius: 999px;
+}
+
+.message-avatar.shape-square {
+  border-radius: 0;
+}
+
+.message-avatar.shape-rectangle {
+  border-radius: 10px;
+  width: calc(var(--message-avatar-size, var(--chat-avatar-size)) * 1.28);
+}
+
 .message {
   max-width: 92%;
   padding: 12px 14px;
@@ -708,13 +763,13 @@ svg {
 
 .message.user {
   align-self: flex-end;
-  background: #f1f4fb;
+  background: var(--chat-bubble-user-bg);
   color: #0a0b0f;
 }
 
 .message.assistant {
   align-self: flex-start;
-  background: var(--panel);
+  background: var(--chat-bubble-assistant-bg);
 }
 
 .message.system {
@@ -744,6 +799,96 @@ svg {
 
 .message.user .message-content {
   color: #0a0b0f;
+}
+
+html[data-chat-style="novel"] .message-row {
+  width: 100%;
+  align-self: stretch;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+html[data-chat-style="novel"] .message-row.user {
+  flex-direction: row;
+}
+
+html[data-chat-style="novel"] .message-row .message {
+  width: 100%;
+  max-width: 100%;
+  color: var(--text);
+  padding-top: 34px;
+  border-radius: 16px;
+}
+
+html[data-chat-style="novel"] .message-row.assistant .message {
+  background: var(--chat-novel-assistant-bg-image);
+  background-size: cover;
+  background-position: center;
+  backdrop-filter: blur(var(--chat-novel-assistant-blur));
+}
+
+html[data-chat-style="novel"] .message-row.user .message {
+  background: var(--chat-novel-user-bg-image);
+  background-size: cover;
+  background-position: center;
+  backdrop-filter: blur(var(--chat-novel-user-blur));
+  color: var(--text);
+}
+
+html[data-chat-style="novel"] .message-row.user .message-content,
+html[data-chat-style="novel"] .message-row.user .message-role {
+  color: var(--text);
+}
+
+html[data-chat-style="novel"] .message-row.assistant .message-avatar {
+  width: var(--chat-novel-assistant-avatar-size);
+  height: var(--chat-novel-assistant-avatar-size);
+}
+
+html[data-chat-style="novel"] .message-row.user .message-avatar {
+  width: var(--chat-novel-user-avatar-size);
+  height: var(--chat-novel-user-avatar-size);
+}
+
+html[data-chat-style="novel"] .message-row.assistant .message {
+  max-width: var(--chat-novel-assistant-content-width);
+}
+
+html[data-chat-style="novel"] .message-row.user .message {
+  max-width: var(--chat-novel-user-content-width);
+}
+
+html[data-chat-style="novel"] .message-row[data-has-avatar="0"] .message {
+  max-width: 100%;
+}
+
+html[data-chat-style="novel"] .message-row[data-novel-avatar-align="center"] {
+  justify-content: center;
+}
+
+html[data-chat-style="novel"] .message-row[data-novel-avatar-align="right"] {
+  flex-direction: row-reverse;
+}
+
+html[data-chat-style="novel"] .message-row[data-novel-avatar-align="right"].user {
+  flex-direction: row-reverse;
+}
+
+html[data-chat-style="novel"] .message-row[data-novel-avatar-align="center"].user {
+  flex-direction: row;
+}
+
+html[data-chat-style="novel"] .message-row[data-novel-avatar-align="left"].user {
+  flex-direction: row;
+}
+
+html[data-chat-style="novel"] .message-row[data-novel-text-flow="below"] {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+html[data-chat-style="novel"] .message-row[data-novel-text-flow="below"] .message {
+  max-width: 100%;
 }
 
 .message-inline-actions {
