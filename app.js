@@ -1,3 +1,25 @@
+const __rootScope = typeof globalThis !== "undefined"
+  ? globalThis
+  : (typeof window !== "undefined" ? window : (typeof self !== "undefined" ? self : {}));
+
+if (typeof __rootScope.structuredClone !== "function") {
+  __rootScope.structuredClone = (value) => JSON.parse(JSON.stringify(value));
+}
+
+if (!__rootScope.crypto) {
+  __rootScope.crypto = {};
+}
+if (typeof __rootScope.crypto.randomUUID !== "function") {
+  __rootScope.crypto.randomUUID = () => {
+    const pattern = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
+    return pattern.replace(/[xy]/g, (char) => {
+      const random = Math.floor(Math.random() * 16);
+      const value = char === "x" ? random : ((random & 0x3) | 0x8);
+      return value.toString(16);
+    });
+  };
+}
+
 const STORAGE_KEY = "maitavern-state-v8"; // legacy fallback (migration only)
 const USER_FILE_STORAGE_KEY = "maitavern-user-file-v1"; // legacy fallback (migration only)
 const USER_FILE_SCHEMA_VERSION = 1;
@@ -5123,9 +5145,13 @@ function applyCustomization() {
   document.documentElement.style.setProperty("--chat-novel-bg", novel.chatBackgroundColor || defaults.customization.novel.chatBackgroundColor);
   document.documentElement.style.setProperty("--chat-novel-assistant-avatar-size", `${novel.assistantAvatarSize || 64}px`);
   document.documentElement.style.setProperty("--chat-novel-user-avatar-size", `${novel.userAvatarSize || 64}px`);
-  document.documentElement.style.setProperty("--chat-novel-assistant-blur", `${novel.assistantBackgroundBlur || 0}px`);
-  document.documentElement.style.setProperty("--chat-novel-user-blur", `${novel.userBackgroundBlur || 0}px`);
-  document.documentElement.style.setProperty("--chat-novel-bg-blur", `${novel.chatBackgroundBlur || 0}px`);
+  const assistantBlur = Math.max(0, Number(novel.assistantBackgroundBlur || 0));
+  const userBlur = Math.max(0, Number(novel.userBackgroundBlur || 0));
+  const chatBlur = Math.max(0, Number(novel.chatBackgroundBlur || 0));
+
+  document.documentElement.style.setProperty("--chat-novel-assistant-filter", assistantBlur > 0 ? `blur(${assistantBlur}px)` : "none");
+  document.documentElement.style.setProperty("--chat-novel-user-filter", userBlur > 0 ? `blur(${userBlur}px)` : "none");
+  document.documentElement.style.setProperty("--chat-novel-bg-filter", chatBlur > 0 ? `blur(${chatBlur}px)` : "none");
 
   document.documentElement.style.setProperty("--chat-novel-assistant-avatar-align", novel.assistantAvatarAlign || "left");
   document.documentElement.style.setProperty("--chat-novel-user-avatar-align", novel.userAvatarAlign || "left");
@@ -5301,7 +5327,10 @@ function syncChatStyleSectionVisibility() {
 function onChatStyleSelectChange() {
   state.customization.chatStyle = els.chatStyleSelect?.value === "novel" ? "novel" : "bubble";
   syncChatStyleSectionVisibility();
-  persistState();
+  if (state.customization.chatStyle === "novel") {
+    expandedMessageMenuIndex = -1;
+    messageInlineEditIndex = -1;
+  }
   applyCustomization();
   renderMessages();
 }

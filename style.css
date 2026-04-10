@@ -28,9 +28,9 @@
   --chat-novel-bg-image: #000000;
   --chat-novel-assistant-avatar-size: 64px;
   --chat-novel-user-avatar-size: 64px;
-  --chat-novel-assistant-blur: 0px;
-  --chat-novel-user-blur: 0px;
-  --chat-novel-bg-blur: 0px;
+  --chat-novel-assistant-filter: none;
+  --chat-novel-user-filter: none;
+  --chat-novel-bg-filter: none;
   --chat-novel-assistant-content-width: calc(100% - var(--chat-novel-assistant-avatar-size) - 10px);
   --chat-novel-user-content-width: calc(100% - var(--chat-novel-user-avatar-size) - 10px);
   --app-font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -649,8 +649,8 @@ html[data-chat-style="novel"] .chat-view-shell::before {
   background: var(--chat-novel-bg-image);
   background-size: cover;
   background-position: center;
-  filter: blur(var(--chat-novel-bg-blur));
-  transform: scale(1.03);
+  filter: var(--chat-novel-bg-filter);
+  transform: scale(1.02);
 }
 
 html[data-chat-style="novel"] .chat-view-shell {
@@ -816,22 +816,20 @@ html[data-chat-style="novel"] .message-row .message {
   width: 100%;
   max-width: 100%;
   color: var(--text);
-  padding-top: 34px;
-  border-radius: 16px;
+  padding: 0;
+  padding-top: 0;
+  border-radius: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
 }
 
 html[data-chat-style="novel"] .message-row.assistant .message {
-  background: var(--chat-novel-assistant-bg-image);
-  background-size: cover;
-  background-position: center;
-  backdrop-filter: blur(var(--chat-novel-assistant-blur));
+  background: transparent;
 }
 
 html[data-chat-style="novel"] .message-row.user .message {
-  background: var(--chat-novel-user-bg-image);
-  background-size: cover;
-  background-position: center;
-  backdrop-filter: blur(var(--chat-novel-user-blur));
+  background: transparent;
   color: var(--text);
 }
 
@@ -856,6 +854,37 @@ html[data-chat-style="novel"] .message-row.assistant .message {
 
 html[data-chat-style="novel"] .message-row.user .message {
   max-width: var(--chat-novel-user-content-width);
+}
+
+html[data-chat-style="novel"] .message-row.assistant .message-content,
+html[data-chat-style="novel"] .message-row.assistant .thinking-summary {
+  background: var(--chat-novel-assistant-bg-image);
+  background-size: cover;
+  background-position: center;
+  filter: var(--chat-novel-assistant-filter);
+  padding: 2px 0;
+}
+
+html[data-chat-style="novel"] .message-row.user .message-content,
+html[data-chat-style="novel"] .message-row.user .thinking-summary {
+  background: var(--chat-novel-user-bg-image);
+  background-size: cover;
+  background-position: center;
+  filter: var(--chat-novel-user-filter);
+  padding: 2px 0;
+}
+
+html[data-chat-style="novel"] .message-row .message-role {
+  margin-bottom: 8px;
+}
+
+html[data-chat-style="novel"] .message-row .message-inline-actions {
+  top: 0;
+  right: 0;
+}
+
+html[data-chat-style="novel"] .message-row .message.actions-expanded .message-action-inline-strip {
+  max-width: 200px;
 }
 
 html[data-chat-style="novel"] .message-row[data-has-avatar="0"] .message {
