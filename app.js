@@ -524,7 +524,7 @@ function bindEvents() {
   els.composer.addEventListener("submit", (event) => event.preventDefault());
   els.sendBtn.addEventListener("click", onSend);
   els.stopBtn.addEventListener("click", stopRequest);
-  els.newChatBtn.addEventListener("click", newChat);
+  els.newChatBtn.addEventListener("click", openLastInteractedChat);
   els.messageInput.addEventListener("input", () => autoResizeTextarea(els.messageInput));
   els.messageInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -532,7 +532,19 @@ function bindEvents() {
     }
   });
   els.navCards.forEach((card) => {
-    card.addEventListener("click", () => switchView(card.dataset.view));
+    card.addEventListener("click", () => {
+      switchView(card.dataset.view);
+      if (card.dataset.view === "chatsView") {
+        state.currentChatId = "";
+        state.messages = [];
+        state.currentChatTitle = "New chat";
+        refreshRecentChatsFromState();
+        renderMessages();
+        renderRecentChats();
+        renderDrawerState();
+        updateChatUiVisibility();
+      }
+    });
   });
   els.characterSearchInput.addEventListener("input", renderCharacters);
   els.characterStudioBtn.addEventListener("click", createCharacter);
@@ -863,6 +875,14 @@ function ensureCurrentChat() {
   return getCurrentChat() || createChatRecord(state.currentChatTitle || "New chat");
 }
 
+function refreshRecentChatsFromState() {
+  state.recentChats = state.chats
+    .slice()
+    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+    .slice(0, 8)
+    .map(({ id, title, preview, updatedAt, characterId }) => ({ id, title, preview, updatedAt, characterId }));
+}
+
 function syncCurrentChatFromState() {
   const chat = ensureCurrentChat();
   chat.title = state.currentChatTitle || chat.title || "New chat";
@@ -879,14 +899,25 @@ function syncCurrentChatFromState() {
   const previewSource = [...chat.messages].reverse().find((message) => message.role === "assistant" || message.role === "user");
   chat.preview = (previewSource?.content || "").slice(0, 80);
   chat.updatedAt = new Date().toISOString();
-  state.recentChats = state.chats
-    .slice()
-    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-    .slice(0, 8)
-    .map(({ id, title, preview, updatedAt, characterId }) => ({ id, title, preview, updatedAt, characterId }));
+  refreshRecentChatsFromState();
 }
 
-function newChat() {
+function openLastInteractedChat() {
+  const current = state.currentChatId
+    ? state.chats.find((chat) => chat.id === state.currentChatId)
+    : null;
+  if (current) {
+    openChat(current.id);
+    return;
+  }
+
+  refreshRecentChatsFromState();
+  const latest = state.recentChats[0];
+  if (latest?.id) {
+    openChat(latest.id);
+    return;
+  }
+
   switchView("chatsView");
   state.messages = [];
   state.currentChatId = "";
@@ -895,7 +926,7 @@ function newChat() {
   renderRecentChats();
   renderDrawerState();
   updateChatUiVisibility();
-  setStatus("Choose an existing chat or start one from a character");
+  setStatus("No chats yet. Start one from a character.");
 }
 
 async function onSend(event) {
