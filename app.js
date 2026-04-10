@@ -54,6 +54,7 @@ const defaults = {
       chatStart: "***",
       exampleSeparator: "***",
       instruct: {
+        enabled: false,
         inputSequence: "<|im_start|>user",
         outputSequence: "<|im_start|>assistant",
         systemSequence: "<|im_start|>system",
@@ -241,6 +242,7 @@ const els = {
   presetContextTemplateInput: document.getElementById("presetContextTemplateInput"),
   presetChatStartInput: document.getElementById("presetChatStartInput"),
   presetExampleSeparatorInput: document.getElementById("presetExampleSeparatorInput"),
+  presetInstructEnabledInput: document.getElementById("presetInstructEnabledInput"),
   presetInstructUserInput: document.getElementById("presetInstructUserInput"),
   presetInstructAssistantInput: document.getElementById("presetInstructAssistantInput"),
   presetInstructSystemInput: document.getElementById("presetInstructSystemInput"),
@@ -1106,7 +1108,7 @@ async function generateAssistantReply({ requestMessages, assistantMessage }) {
 
     const preset = getActivePreset();
     const messagesForRequest = buildApiMessages(requestMessages);
-    const messagesForLog = buildApiMessages(requestMessages, { limitConversationMessages: 5 });
+    const messagesForLog = JSON.parse(JSON.stringify(messagesForRequest));
 
     const basePayload = {
       model: state.selectedModel,
@@ -1227,11 +1229,28 @@ function buildApiMessages(messages, options = {}) {
   const systemPrompt = buildPresetSystemPrompt({ preset, character: currentCharacter, loreContext });
   const vars = buildPromptVariables(currentCharacter, systemPrompt, loreContext);
 
+  const injected = buildPresetInjectedMessages({ preset, vars });
+
   if (shouldApplyInstructPreset(preset)) {
-    return buildInstructTranscriptMessages({ messages: filteredMessages, preset, systemPrompt });
+    const injectedSystemBlocks = [...injected.before, ...injected.after]
+      .filter((msg) => msg.role === "system")
+      .map((msg) => String(msg.content || "").trim())
+      .filter(Boolean);
+
+    const instructSystemPrompt = [systemPrompt, ...injectedSystemBlocks]
+      .filter(Boolean)
+      .join("\n\n")
+      .trim();
+
+    const instructMessages = [
+      ...injected.before.filter((msg) => msg.role !== "system"),
+      ...filteredMessages.map((msg) => ({ role: msg.role, content: msg.content })),
+      ...injected.after.filter((msg) => msg.role !== "system"),
+    ];
+
+    return buildInstructTranscriptMessages({ messages: instructMessages, preset, systemPrompt: instructSystemPrompt });
   }
 
-  const injected = buildPresetInjectedMessages({ preset, vars });
   const apiMessages = [];
 
   if (systemPrompt) {
@@ -1250,12 +1269,10 @@ function buildApiMessages(messages, options = {}) {
 }
 
 function shouldApplyInstructPreset(preset) {
-  return Boolean(
-    preset?.instruct?.inputSequence
-    || preset?.instruct?.outputSequence
-    || preset?.instruct?.systemSequence
-    || preset?.source === "sillytavern-instruct"
-  );
+  if (typeof preset?.instruct?.enabled === "boolean") {
+    return preset.instruct.enabled;
+  }
+  return preset?.source === "sillytavern-instruct";
 }
 
 function buildInstructTranscriptMessages({ messages, preset, systemPrompt }) {
@@ -2686,6 +2703,7 @@ function normalizePreset(preset) {
     prompts: normalizePresetPromptList(Array.isArray(preset.prompts) ? preset.prompts : []),
     promptOrder: Array.isArray(preset.promptOrder) ? preset.promptOrder : Array.isArray(preset.prompt_order) ? preset.prompt_order : [],
     instruct: {
+      enabled: Boolean(preset.instruct?.enabled ?? (preset.source === "sillytavern-instruct")),
       inputSequence: preset.instruct?.inputSequence || preset.input_sequence || defaults.presets[0].instruct.inputSequence,
       outputSequence: preset.instruct?.outputSequence || preset.output_sequence || defaults.presets[0].instruct.outputSequence,
       systemSequence: preset.instruct?.systemSequence || preset.system_sequence || defaults.presets[0].instruct.systemSequence,
@@ -3705,6 +3723,7 @@ function showPresetForm(preset = null) {
   els.presetContextTemplateInput.value = normalized.contextTemplate || "";
   els.presetChatStartInput.value = normalized.chatStart || "";
   els.presetExampleSeparatorInput.value = normalized.exampleSeparator || "";
+  if (els.presetInstructEnabledInput) els.presetInstructEnabledInput.checked = normalized.instruct.enabled === true;
   els.presetInstructUserInput.value = normalized.instruct.inputSequence || "";
   els.presetInstructAssistantInput.value = normalized.instruct.outputSequence || "";
   els.presetInstructSystemInput.value = normalized.instruct.systemSequence || "";
@@ -3733,6 +3752,7 @@ function hidePresetForm() {
   els.presetContextTemplateInput.value = defaults.presets[0].contextTemplate;
   els.presetChatStartInput.value = defaults.presets[0].chatStart;
   els.presetExampleSeparatorInput.value = defaults.presets[0].exampleSeparator;
+  if (els.presetInstructEnabledInput) els.presetInstructEnabledInput.checked = defaults.presets[0].instruct.enabled === true;
   els.presetInstructUserInput.value = defaults.presets[0].instruct.inputSequence;
   els.presetInstructAssistantInput.value = defaults.presets[0].instruct.outputSequence;
   els.presetInstructSystemInput.value = defaults.presets[0].instruct.systemSequence;
@@ -3942,6 +3962,7 @@ function savePresetFromForm() {
     prompts: promptDraftList,
     prompt_order: promptOrder,
     instruct: {
+      enabled: Boolean(els.presetInstructEnabledInput?.checked ?? false),
       inputSequence: els.presetInstructUserInput.value,
       outputSequence: els.presetInstructAssistantInput.value,
       systemSequence: els.presetInstructSystemInput.value,
