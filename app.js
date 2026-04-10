@@ -389,6 +389,8 @@ const els = {
   avatarSizeInput: document.getElementById("avatarSizeInput"),
   defaultTextColorInput: document.getElementById("defaultTextColorInput"),
   saveCustomizationBtn: document.getElementById("saveCustomizationBtn"),
+  saveCustomizationTopBtn: document.getElementById("saveCustomizationTopBtn"),
+  resetCustomizationBtn: document.getElementById("resetCustomizationBtn"),
   chatCustomizationSectionBtn: document.getElementById("chatCustomizationSectionBtn"),
   chatCustomizationSection: document.getElementById("chatCustomizationSection"),
   chatStyleSelect: document.getElementById("chatStyleSelect"),
@@ -774,6 +776,8 @@ function bindEvents() {
   els.impersonateToggleBtn?.addEventListener("click", toggleImpersonationPicker);
   els.impersonateSelect?.addEventListener("change", onImpersonationChange);
   els.saveCustomizationBtn?.addEventListener("click", saveCustomization);
+  els.saveCustomizationTopBtn?.addEventListener("click", saveCustomization);
+  els.resetCustomizationBtn?.addEventListener("click", resetCustomization);
   els.chatCustomizationSectionBtn?.addEventListener("click", () => toggleSection(els.chatCustomizationSection));
   els.chatStyleSelect?.addEventListener("change", onChatStyleSelectChange);
   els.bubbleStyleSectionBtn?.addEventListener("click", () => toggleSection(els.bubbleStyleSection));
@@ -5154,10 +5158,9 @@ function applyCustomization() {
   updateCurrentFontLabel();
 }
 
-function saveCustomization() {
+function collectCustomizationFromInputs() {
   if (!els.avatarSizeInput || !els.defaultTextColorInput) {
-    showToast("Customisation controls are unavailable", "error");
-    return;
+    return false;
   }
 
   const bubble = state.customization.bubble || {};
@@ -5215,6 +5218,14 @@ function saveCustomization() {
 
   state.customization.bubble = bubble;
   state.customization.novel = novel;
+  return true;
+}
+
+function saveCustomization() {
+  if (!collectCustomizationFromInputs()) {
+    showToast("Customisation controls are unavailable", "error");
+    return;
+  }
 
   persistState();
   syncCustomizationInputs();
@@ -5222,6 +5233,16 @@ function saveCustomization() {
   renderMessages();
   showToast("Customisation saved!", "success");
   setStatus("Customisation saved");
+}
+
+function resetCustomization() {
+  state.customization = structuredClone(defaults.customization);
+  persistState();
+  syncCustomizationInputs();
+  applyCustomization();
+  renderMessages();
+  showToast("Customisation reset", "success");
+  setStatus("Customisation reset");
 }
 
 function onDefaultTextColorLiveChange() {
