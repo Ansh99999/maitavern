@@ -6,6 +6,8 @@
     <application
         android:allowBackup="true"
         android:label="MaiTavern"
+        android:icon="@drawable/maitavern_logo"
+        android:roundIcon="@drawable/maitavern_logo"
         android:theme="@style/Theme.MaiTavern"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true">
