@@ -139,7 +139,7 @@ const defaults = {
       userBackgroundImage: "",
       assistantBackgroundBlur: 0,
       userBackgroundBlur: 0,
-      chatBackgroundColor: "#000000",
+      chatBackgroundColor: "#0F0E11",
       chatBackgroundImage: "",
       chatBackgroundBlur: 0,
     },
@@ -207,6 +207,7 @@ const els = {
   sendBtn: document.getElementById("sendBtn"),
   stopBtn: document.getElementById("stopBtn"),
   statusText: document.getElementById("statusText"),
+  homeGreeting: document.getElementById("homeGreeting"),
   newChatBtn: document.getElementById("newChatBtn"),
   messageTemplate: document.getElementById("messageTemplate"),
   navCards: Array.from(document.querySelectorAll(".nav-card")),
@@ -514,6 +515,7 @@ async function init() {
   syncLorebookSettingsInputs();
   renderWrapRuleList();
   applyWelcomeState();
+  updateHomeGreeting();
   switchView(state.activeView || "homeView");
   bindEvents();
   autoResizeTextarea(els.messageInput);
@@ -650,6 +652,9 @@ function ensureCollections() {
   state.customization.novel.chatBackgroundColor = isValidHexColor(state.customization.novel.chatBackgroundColor)
     ? state.customization.novel.chatBackgroundColor
     : defaults.customization.novel.chatBackgroundColor;
+  if (["#000", "#000000"].includes(String(state.customization.novel.chatBackgroundColor || "").trim().toLowerCase())) {
+    state.customization.novel.chatBackgroundColor = defaults.customization.novel.chatBackgroundColor;
+  }
   state.customization.novel.assistantBackgroundImage = typeof state.customization.novel.assistantBackgroundImage === "string" ? state.customization.novel.assistantBackgroundImage : "";
   state.customization.novel.userBackgroundImage = typeof state.customization.novel.userBackgroundImage === "string" ? state.customization.novel.userBackgroundImage : "";
   state.customization.novel.chatBackgroundImage = typeof state.customization.novel.chatBackgroundImage === "string" ? state.customization.novel.chatBackgroundImage : "";
@@ -893,6 +898,18 @@ function goHome() {
   setStatus("Home");
 }
 
+function getHomeGreeting(date = new Date()) {
+  const hour = date.getHours();
+  if (hour < 12) return "Good morning,";
+  if (hour < 18) return "Good afternoon,";
+  return "Good evening,";
+}
+
+function updateHomeGreeting() {
+  if (!els.homeGreeting) return;
+  els.homeGreeting.textContent = getHomeGreeting();
+}
+
 function applyWelcomeState() {
   els.welcomeScreen.classList.toggle("hidden", state.hasEnteredApp);
   els.appShell.classList.toggle("hidden", !state.hasEnteredApp);
@@ -906,6 +923,9 @@ function switchView(viewId) {
     const isLorebookSubpage = viewId === "lorebookEditorView" && card.dataset.view === "libraryView";
     card.classList.toggle("active", isDirect || isLorebookSubpage);
   });
+  if (viewId === "homeView") {
+    updateHomeGreeting();
+  }
   els.settingsToggle?.classList.add("hidden");
   if (viewId !== "chatsView") toggleChatDrawer(false);
   updateChatUiVisibility();

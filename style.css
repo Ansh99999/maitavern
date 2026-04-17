@@ -1,16 +1,16 @@
 :root {
-  --bg: #000000;
-  --panel: #0b0b0d;
-  --panel-2: #111114;
-  --panel-3: #17171b;
+  --bg: #0F0E11;
+  --panel: #131117;
+  --panel-2: #17141b;
+  --panel-3: #1d1921;
   --text: #f5f7fb;
-  --muted: #9a9faa;
+  --muted: #a59ea8;
   --accent: #f5f7fb;
   --accent-strong: #ffffff;
   --danger: #ff6f8f;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
-  --shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.42);
   --chat-avatar-size: 40px;
   --chat-default-text-color: #f5f7fb;
   --chat-quote-color: #7dd3fc;
@@ -22,10 +22,10 @@
   --chat-bubble-user-avatar-size: 40px;
   --chat-novel-assistant-bg: #111114;
   --chat-novel-user-bg: #151a24;
-  --chat-novel-bg: #000000;
+  --chat-novel-bg: #0F0E11;
   --chat-novel-assistant-bg-image: #111114;
   --chat-novel-user-bg-image: #151a24;
-  --chat-novel-bg-image: #000000;
+  --chat-novel-bg-image: #0F0E11;
   --chat-novel-assistant-avatar-size: 64px;
   --chat-novel-user-avatar-size: 64px;
   --chat-novel-assistant-filter: none;
@@ -48,8 +48,9 @@ html, body {
 
 body {
   background:
-    radial-gradient(circle at top, rgba(255,255,255,0.035), transparent 32%),
-    #000;
+    radial-gradient(circle at top, rgba(196, 155, 111, 0.09), transparent 34%),
+    linear-gradient(180deg, rgba(255,255,255,0.015), transparent 24%),
+    var(--bg);
   color: var(--chat-default-text-color);
 }
 
@@ -93,8 +94,9 @@ svg {
   place-items: center;
   padding: 24px;
   background:
-    radial-gradient(circle at center, rgba(255,255,255,0.05), transparent 36%),
-    #000;
+    radial-gradient(circle at center, rgba(196, 155, 111, 0.08), transparent 38%),
+    linear-gradient(180deg, rgba(255,255,255,0.015), transparent 26%),
+    var(--bg);
   z-index: 30;
 }
 
@@ -149,7 +151,7 @@ svg {
   justify-content: space-between;
   gap: 12px;
   padding: max(14px, env(safe-area-inset-top)) 16px 12px;
-  background: rgba(0, 0, 0, 0.84);
+  background: rgba(15, 14, 17, 0.84);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
 }
@@ -219,7 +221,7 @@ svg {
   gap: 10px;
 }
 
-.icon-button, .primary, .secondary, .danger, .nav-card {
+.icon-button, .primary, .secondary, .danger {
   border: 1px solid var(--border);
   border-radius: 18px;
 }
@@ -284,7 +286,6 @@ svg {
 }
 
 .hero-card,
-.nav-card,
 .upload-card,
 .placeholder-card,
 .provider-form-card,
@@ -323,7 +324,29 @@ svg {
   line-height: 1.6;
 }
 
-.home-grid,
+#homeView {
+  max-width: 560px;
+}
+
+.home-greeting {
+  margin: 28px 0 18px;
+  color: rgba(245, 247, 251, 0.58);
+  font-size: 0.98rem;
+  line-height: 1.4;
+  font-weight: 300;
+  letter-spacing: 0.01em;
+}
+
+.home-greeting:empty {
+  display: none;
+}
+
+.home-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
 .entity-list,
 .asset-list {
   display: grid;
@@ -332,39 +355,101 @@ svg {
 
 .nav-card {
   width: 100%;
-  padding: 18px;
+  padding: 12px 0;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 14px;
-  background: var(--panel);
-  color: var(--text);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: rgba(245, 247, 251, 0.88);
   text-align: left;
 }
 
+.home-nav-primary {
+  padding-block: 16px;
+  gap: 16px;
+}
+
+.home-nav-secondary {
+  padding-block: 10px;
+  gap: 12px;
+  color: rgba(245, 247, 251, 0.76);
+}
+
+.home-nav-secondary-start {
+  margin-top: 10px;
+}
+
 .nav-card.active,
-.nav-card:hover {
-  border-color: var(--border-strong);
-  background: var(--panel-2);
+.nav-card:hover,
+.nav-card:focus-visible {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  transform: none;
 }
 
 .nav-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-  display: grid;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  display: inline-grid;
   place-items: center;
-  background: rgba(255,255,255,0.04);
+  background: transparent;
+  color: rgba(220, 191, 156, 0.66);
   flex: 0 0 auto;
+}
+
+.nav-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.home-nav-primary .nav-icon {
+  color: rgba(224, 196, 165, 0.74);
+}
+
+.home-nav-primary .nav-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.home-nav-secondary .nav-icon {
+  color: rgba(214, 188, 155, 0.58);
+}
+
+.home-nav-secondary .nav-icon svg {
+  width: 20px;
+  height: 20px;
 }
 
 .nav-copy {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
+  min-width: 0;
 }
 
 .nav-copy strong {
   font-size: 1rem;
+  font-weight: 450;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
+}
+
+.home-nav-primary .nav-copy strong {
+  font-size: 1.04rem;
+  font-weight: 500;
+  color: rgba(245, 247, 251, 0.94);
+}
+
+.home-nav-secondary .nav-copy strong {
+  font-size: 0.96rem;
+  font-weight: 430;
+  color: rgba(245, 247, 251, 0.76);
 }
 
 .section-header {
@@ -1133,7 +1218,7 @@ html[data-chat-style="novel"] .message-row[data-novel-text-flow="below"] .messag
   padding: 12px 0 max(14px, env(safe-area-inset-bottom));
   border-top: 1px solid var(--border);
   margin-top: auto;
-  background: linear-gradient(180deg, rgba(0,0,0,0.2), #000 22%);
+  background: linear-gradient(180deg, rgba(15, 14, 17, 0.18), var(--bg) 22%);
   z-index: 3;
   flex-shrink: 0;
 }
@@ -1184,7 +1269,7 @@ html[data-chat-style="novel"] .message-row[data-novel-text-flow="below"] .messag
   position: fixed;
   inset: 0 auto 0 0;
   width: min(100%, 360px);
-  background: #050507;
+  background: var(--panel);
   border-right: 1px solid var(--border);
   box-shadow: var(--shadow);
   overflow: hidden;
@@ -1370,7 +1455,7 @@ html[data-chat-style="novel"] .message-row[data-novel-text-flow="below"] .messag
   position: fixed;
   inset: 0 0 0 auto;
   width: min(100%, 420px);
-  background: #050507;
+  background: var(--panel);
   border-left: 1px solid var(--border);
   box-shadow: var(--shadow);
   padding: max(14px, env(safe-area-inset-top)) 14px max(16px, env(safe-area-inset-bottom));
@@ -1409,7 +1494,7 @@ html[data-chat-style="novel"] .message-row[data-novel-text-flow="below"] .messag
   max-height: 86vh;
   overflow-y: auto;
   transform: translate(-50%, -50%);
-  background: #07080a;
+  background: var(--panel-2);
   z-index: 45;
 }
 
@@ -1492,8 +1577,7 @@ html[data-chat-style="novel"] .message-row[data-novel-text-flow="below"] .messag
 .collapsible-trigger:hover,
 .entity-card:hover,
 .chat-card:hover,
-.nav-card:hover,
-button:hover {
+button:not(.nav-card):hover {
   transform: translateY(-1px);
 }
 
@@ -1527,7 +1611,7 @@ button:hover {
 
 @media (min-width: 760px) {
   .home-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .field-grid {

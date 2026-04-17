@@ -110,8 +110,10 @@
 
     <main class="main-content">
       <section id="homeView" class="view active">
+        <p id="homeGreeting" class="home-greeting" aria-live="polite"></p>
+
         <section class="home-grid" aria-label="Main sections">
-          <button class="nav-card active" data-view="charactersView">
+          <button class="nav-card home-nav-primary" data-view="charactersView">
             <span class="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path>
@@ -125,7 +127,18 @@
             </span>
           </button>
 
-          <button class="nav-card" data-view="presetsView">
+          <button class="nav-card home-nav-primary" data-view="chatsView">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </span>
+            <span class="nav-copy">
+              <strong>Chats</strong>
+            </span>
+          </button>
+
+          <button class="nav-card home-nav-secondary home-nav-secondary-start" data-view="presetsView">
             <span class="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 20h9"></path>
@@ -137,7 +150,7 @@
             </span>
           </button>
 
-          <button class="nav-card" data-view="providersView">
+          <button class="nav-card home-nav-secondary" data-view="providersView">
             <span class="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="4" width="18" height="6" rx="2"></rect>
@@ -151,7 +164,7 @@
             </span>
           </button>
 
-          <button class="nav-card" data-view="libraryView">
+          <button class="nav-card home-nav-secondary" data-view="libraryView">
             <span class="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
@@ -163,7 +176,7 @@
             </span>
           </button>
 
-          <button class="nav-card" data-view="customizationView">
+          <button class="nav-card home-nav-secondary" data-view="customizationView">
             <span class="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 3v3"></path>
@@ -178,7 +191,7 @@
             </span>
           </button>
 
-          <button class="nav-card" data-view="dataView">
+          <button class="nav-card home-nav-secondary" data-view="dataView">
             <span class="nav-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M4 7h16"></path>
@@ -189,17 +202,6 @@
             </span>
             <span class="nav-copy">
               <strong>Data</strong>
-            </span>
-          </button>
-
-          <button class="nav-card" data-view="chatsView">
-            <span class="nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-            </span>
-            <span class="nav-copy">
-              <strong>Chats</strong>
             </span>
           </button>
         </section>
