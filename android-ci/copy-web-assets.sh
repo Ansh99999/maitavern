@@ -9,5 +9,6 @@ mkdir -p "$ASSET_DIR"
 cp "$ROOT_DIR/index.html" "$ASSET_DIR/index.html"
 cp "$ROOT_DIR/app.js" "$ASSET_DIR/app.js"
 cp "$ROOT_DIR/style.css" "$ASSET_DIR/style.css"
+cp "$ROOT_DIR/maitavern_logo.jpg" "$ASSET_DIR/maitavern_logo.jpg"
 
 echo "Web assets copied to $ASSET_DIR"

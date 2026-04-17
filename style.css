@@ -1,16 +1,16 @@
 :root {
-  --bg: #0F0E11;
-  --panel: #131117;
-  --panel-2: #17141b;
-  --panel-3: #1d1921;
+  --bg: #000000;
+  --panel: #0b0b0d;
+  --panel-2: #111114;
+  --panel-3: #17171b;
   --text: #f5f7fb;
-  --muted: #a59ea8;
+  --muted: #9a9faa;
   --accent: #f5f7fb;
   --accent-strong: #ffffff;
   --danger: #ff6f8f;
-  --border: rgba(255, 255, 255, 0.07);
-  --border-strong: rgba(255, 255, 255, 0.12);
-  --shadow: 0 20px 60px rgba(0, 0, 0, 0.42);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
   --chat-avatar-size: 40px;
   --chat-default-text-color: #f5f7fb;
   --chat-quote-color: #7dd3fc;
@@ -22,10 +22,10 @@
   --chat-bubble-user-avatar-size: 40px;
   --chat-novel-assistant-bg: #111114;
   --chat-novel-user-bg: #151a24;
-  --chat-novel-bg: #0F0E11;
+  --chat-novel-bg: #000000;
   --chat-novel-assistant-bg-image: #111114;
   --chat-novel-user-bg-image: #151a24;
-  --chat-novel-bg-image: #0F0E11;
+  --chat-novel-bg-image: #000000;
   --chat-novel-assistant-avatar-size: 64px;
   --chat-novel-user-avatar-size: 64px;
   --chat-novel-assistant-filter: none;
@@ -47,10 +47,7 @@ html, body {
 }
 
 body {
-  background:
-    radial-gradient(circle at top, rgba(196, 155, 111, 0.09), transparent 34%),
-    linear-gradient(180deg, rgba(255,255,255,0.015), transparent 24%),
-    var(--bg);
+  background: var(--bg);
   color: var(--chat-default-text-color);
 }
 
@@ -79,6 +76,7 @@ input, textarea, select {
 svg {
   width: 20px;
   height: 20px;
+  color: #ffffff;
 }
 
 .hidden { display: none !important; }
@@ -93,10 +91,7 @@ svg {
   display: grid;
   place-items: center;
   padding: 24px;
-  background:
-    radial-gradient(circle at center, rgba(196, 155, 111, 0.08), transparent 38%),
-    linear-gradient(180deg, rgba(255,255,255,0.015), transparent 26%),
-    var(--bg);
+  background: var(--bg);
   z-index: 30;
 }
 
@@ -151,7 +146,7 @@ svg {
   justify-content: space-between;
   gap: 12px;
   padding: max(14px, env(safe-area-inset-top)) 16px 12px;
-  background: rgba(15, 14, 17, 0.84);
+  background: rgba(0, 0, 0, 0.84);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
 }
@@ -184,13 +179,21 @@ svg {
 .brand-mark {
   width: 44px;
   height: 44px;
-  border-radius: 16px;
+  border-radius: 12px;
   display: grid;
   place-items: center;
   background: var(--panel-2);
   border: 1px solid var(--border);
   color: var(--text);
   box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .title-wrap {
@@ -291,7 +294,7 @@ svg {
 .provider-form-card,
 .entity-card,
 .chat-card {
-  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+  background: var(--panel);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
 }
@@ -355,31 +358,31 @@ svg {
 
 .nav-card {
   width: 100%;
-  padding: 12px 0;
+  padding: 18px 0;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 18px;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  color: rgba(245, 247, 251, 0.88);
+  color: rgba(245, 247, 251, 0.96);
   text-align: left;
 }
 
 .home-nav-primary {
-  padding-block: 16px;
-  gap: 16px;
+  padding-block: 24px;
+  gap: 20px;
 }
 
 .home-nav-secondary {
-  padding-block: 10px;
-  gap: 12px;
-  color: rgba(245, 247, 251, 0.76);
+  padding-block: 18px;
+  gap: 18px;
+  color: rgba(245, 247, 251, 0.92);
 }
 
 .home-nav-secondary-start {
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .nav-card.active,
@@ -399,31 +402,34 @@ svg {
   display: inline-grid;
   place-items: center;
   background: transparent;
-  color: rgba(220, 191, 156, 0.66);
+  color: #ffffff;
   flex: 0 0 auto;
 }
 
 .nav-icon svg {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
+  color: #ffffff;
 }
 
 .home-nav-primary .nav-icon {
-  color: rgba(224, 196, 165, 0.74);
+  color: #ffffff;
 }
 
 .home-nav-primary .nav-icon svg {
-  width: 26px;
-  height: 26px;
+  width: 36px;
+  height: 36px;
+  color: #ffffff;
 }
 
 .home-nav-secondary .nav-icon {
-  color: rgba(214, 188, 155, 0.58);
+  color: #ffffff;
 }
 
 .home-nav-secondary .nav-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 30px;
+  height: 30px;
+  color: #ffffff;
 }
 
 .nav-copy {
@@ -434,22 +440,22 @@ svg {
 }
 
 .nav-copy strong {
-  font-size: 1rem;
-  font-weight: 450;
+  font-size: 1.18rem;
+  font-weight: 520;
   letter-spacing: 0.01em;
   line-height: 1.35;
 }
 
 .home-nav-primary .nav-copy strong {
-  font-size: 1.04rem;
-  font-weight: 500;
-  color: rgba(245, 247, 251, 0.94);
+  font-size: 1.3rem;
+  font-weight: 620;
+  color: #ffffff;
 }
 
 .home-nav-secondary .nav-copy strong {
-  font-size: 0.96rem;
-  font-weight: 430;
-  color: rgba(245, 247, 251, 0.76);
+  font-size: 1.16rem;
+  font-weight: 520;
+  color: rgba(245, 247, 251, 0.96);
 }
 
 .section-header {
@@ -1218,7 +1224,7 @@ html[data-chat-style="novel"] .message-row[data-novel-text-flow="below"] .messag
   padding: 12px 0 max(14px, env(safe-area-inset-bottom));
   border-top: 1px solid var(--border);
   margin-top: auto;
-  background: linear-gradient(180deg, rgba(15, 14, 17, 0.18), var(--bg) 22%);
+  background: var(--bg);
   z-index: 3;
   flex-shrink: 0;
 }

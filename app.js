@@ -139,7 +139,7 @@ const defaults = {
       userBackgroundImage: "",
       assistantBackgroundBlur: 0,
       userBackgroundBlur: 0,
-      chatBackgroundColor: "#0F0E11",
+      chatBackgroundColor: "#000000",
       chatBackgroundImage: "",
       chatBackgroundBlur: 0,
     },
@@ -652,7 +652,8 @@ function ensureCollections() {
   state.customization.novel.chatBackgroundColor = isValidHexColor(state.customization.novel.chatBackgroundColor)
     ? state.customization.novel.chatBackgroundColor
     : defaults.customization.novel.chatBackgroundColor;
-  if (["#000", "#000000"].includes(String(state.customization.novel.chatBackgroundColor || "").trim().toLowerCase())) {
+  const normalizedNovelChatBg = String(state.customization.novel.chatBackgroundColor || "").trim().toLowerCase();
+  if (["#0f0e11", "#100f14", "#0d0d0f"].includes(normalizedNovelChatBg)) {
     state.customization.novel.chatBackgroundColor = defaults.customization.novel.chatBackgroundColor;
   }
   state.customization.novel.assistantBackgroundImage = typeof state.customization.novel.assistantBackgroundImage === "string" ? state.customization.novel.assistantBackgroundImage : "";
@@ -5186,13 +5187,13 @@ function applyCustomization() {
   document.documentElement.style.setProperty("--chat-novel-user-content-width", userWidth);
 
   const assistantBackgroundImage = novel.assistantBackgroundImage
-    ? `linear-gradient(180deg, rgba(0,0,0,0.34), rgba(0,0,0,0.34)), url(${JSON.stringify(novel.assistantBackgroundImage)})`
+    ? `url(${JSON.stringify(novel.assistantBackgroundImage)})`
     : novel.assistantBackgroundColor;
   const userBackgroundImage = novel.userBackgroundImage
-    ? `linear-gradient(180deg, rgba(0,0,0,0.34), rgba(0,0,0,0.34)), url(${JSON.stringify(novel.userBackgroundImage)})`
+    ? `url(${JSON.stringify(novel.userBackgroundImage)})`
     : novel.userBackgroundColor;
   const chatBackgroundImage = novel.chatBackgroundImage
-    ? `linear-gradient(180deg, rgba(0,0,0,0.38), rgba(0,0,0,0.38)), url(${JSON.stringify(novel.chatBackgroundImage)})`
+    ? `url(${JSON.stringify(novel.chatBackgroundImage)})`
     : novel.chatBackgroundColor;
 
   document.documentElement.style.setProperty("--chat-novel-assistant-bg-image", assistantBackgroundImage);
