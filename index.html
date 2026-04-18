@@ -761,49 +761,63 @@
           </div>
         </div>
 
-        <div class="library-category-row" role="tablist" aria-label="Library sections">
-          <button class="library-category-chip active" type="button" data-library-panel="libraryLorebooksPanel">
+        <section id="libraryHubPanel" class="library-panel active" aria-label="Library sections">
+          <label class="library-hub-search" aria-label="Search library sections">
             <span class="library-chip-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="M20 20l-3.5-3.5"></path>
               </svg>
             </span>
-            <span>Lorebooks</span>
-          </button>
-          <button class="library-category-chip" type="button" data-library-panel="libraryScenarioPanel">
-            <span class="library-chip-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 4h6v6"></path>
-                <path d="M10 20H4v-6"></path>
-                <path d="M20 4l-7.5 7.5"></path>
-                <path d="M4 20l7.5-7.5"></path>
-              </svg>
-            </span>
-            <span>Scenario</span>
-          </button>
-          <button class="library-category-chip" type="button" data-library-panel="libraryPromptsPanel">
-            <span class="library-chip-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M7 8h10"></path>
-                <path d="M7 12h8"></path>
-                <path d="M7 16h6"></path>
-                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-              </svg>
-            </span>
-            <span>Prompts</span>
-          </button>
-          <button class="library-category-chip" type="button" data-library-panel="libraryPicturesPanel">
-            <span class="library-chip-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-                <circle cx="9" cy="10" r="1.8"></circle>
-                <path d="M21 16l-5-5-7 7"></path>
-              </svg>
-            </span>
-            <span>Pictures</span>
-          </button>
-        </div>
+            <input id="libraryHubSearchInput" type="search" placeholder="Search: lorebook, prompt, scenario, images..." />
+          </label>
+
+          <section id="libraryHubGrid" class="library-hub-grid" role="tablist" aria-label="Library sections">
+            <button class="library-category-chip library-hub-card" type="button" data-library-panel="libraryLorebooksPanel" data-library-search="lorebook lorebooks">
+              <span class="library-chip-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+              </span>
+              <span>Lorebook</span>
+            </button>
+            <button class="library-category-chip library-hub-card" type="button" data-library-panel="libraryPromptsPanel" data-library-search="prompt prompts">
+              <span class="library-chip-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M7 8h10"></path>
+                  <path d="M7 12h8"></path>
+                  <path d="M7 16h6"></path>
+                  <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                </svg>
+              </span>
+              <span>Prompt</span>
+            </button>
+            <button class="library-category-chip library-hub-card" type="button" data-library-panel="libraryScenarioPanel" data-library-search="scenario scenarios">
+              <span class="library-chip-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 4h6v6"></path>
+                  <path d="M10 20H4v-6"></path>
+                  <path d="M20 4l-7.5 7.5"></path>
+                  <path d="M4 20l7.5-7.5"></path>
+                </svg>
+              </span>
+              <span>Scenario</span>
+            </button>
+            <button class="library-category-chip library-hub-card" type="button" data-library-panel="libraryPicturesPanel" data-library-search="image images picture pictures">
+              <span class="library-chip-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                  <circle cx="9" cy="10" r="1.8"></circle>
+                  <path d="M21 16l-5-5-7 7"></path>
+                </svg>
+              </span>
+              <span>Images</span>
+            </button>
+          </section>
+
+          <p id="libraryHubEmptyState" class="entity-meta hidden">No matching section. Try another search.</p>
+        </section>
 
         <section id="libraryLorebooksPanel" class="library-panel active lorebook-v2-panel">
           <div id="lbv2Stack" class="lbv2-stack" data-level="1" data-anim="none">
@@ -1332,18 +1346,27 @@
         </section>
 
         <section id="libraryScenarioPanel" class="library-panel hidden">
+          <div class="button-row" style="margin-bottom: 12px;">
+            <button class="secondary library-panel-back-btn" type="button">Back to library</button>
+          </div>
           <article class="placeholder-card">
             <p>Scenario library UI is ready for your next update.</p>
           </article>
         </section>
 
         <section id="libraryPromptsPanel" class="library-panel hidden">
+          <div class="button-row" style="margin-bottom: 12px;">
+            <button class="secondary library-panel-back-btn" type="button">Back to library</button>
+          </div>
           <article class="placeholder-card">
             <p>Prompt snippets will live here.</p>
           </article>
         </section>
 
         <section id="libraryPicturesPanel" class="library-panel hidden">
+          <div class="button-row" style="margin-bottom: 12px;">
+            <button class="secondary library-panel-back-btn" type="button">Back to library</button>
+          </div>
           <article class="placeholder-card">
             <p>Picture assets will appear here.</p>
           </article>

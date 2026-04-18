@@ -483,6 +483,33 @@ svg {
   -webkit-overflow-scrolling: touch;
 }
 
+.library-hub-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.library-hub-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  min-height: 36px;
+  padding: 0;
+}
+
+.library-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .library-category-chip {
   min-width: 108px;
   border: 1px solid var(--border);
@@ -495,6 +522,13 @@ svg {
   align-items: center;
   gap: 6px;
   white-space: nowrap;
+}
+
+.library-hub-card {
+  width: 100%;
+  min-width: 0;
+  min-height: 110px;
+  justify-content: center;
 }
 
 .library-category-chip.active {
@@ -518,6 +552,16 @@ svg {
 
 .library-panel {
   animation: viewIn 0.16s ease;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+#libraryView {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .lorebook-inline-toolbar {
@@ -2694,6 +2738,10 @@ button:not(.nav-card):hover {
 }
 
 @media (max-width: 759px) {
+  .library-hub-grid {
+    grid-template-columns: 1fr;
+  }
+
   .library-panel.lorebook-v2-panel,
   .lbv2-stack {
     min-height: calc(100vh - 245px);

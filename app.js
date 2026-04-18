@@ -176,6 +176,7 @@ let lorebookEntryLongPress = {
   scrollContainer: null,
 };
 let lorebookEntrySearchQuery = "";
+let libraryHubSearchQuery = "";
 let drawerPresetEditorDraft = null;
 let drawerPresetPromptDragIndex = -1;
 let drawerSelectedLogId = "";
@@ -308,8 +309,13 @@ const els = {
   lorebookExportBtn: document.getElementById("lorebookExportBtn"),
   lorebookNewBtn: document.getElementById("lorebookNewBtn"),
   lorebookImportInput: document.getElementById("lorebookImportInput"),
+  libraryHubPanel: document.getElementById("libraryHubPanel"),
+  libraryHubSearchInput: document.getElementById("libraryHubSearchInput"),
+  libraryHubGrid: document.getElementById("libraryHubGrid"),
+  libraryHubEmptyState: document.getElementById("libraryHubEmptyState"),
   libraryCategoryChips: Array.from(document.querySelectorAll(".library-category-chip")),
   libraryPanels: Array.from(document.querySelectorAll("#libraryView .library-panel")),
+  libraryPanelBackBtns: Array.from(document.querySelectorAll(".library-panel-back-btn")),
   lorebookEditorView: document.getElementById("lorebookEditorView"),
   lorebookEditorBackBtn: document.getElementById("lorebookEditorBackBtn"),
   lorebookEditorImportBtn: document.getElementById("lorebookEditorImportBtn"),
@@ -700,7 +706,8 @@ async function init() {
   renderProviders();
   renderPresets();
   renderLorebooks();
-  setActiveLibraryPanel("libraryLorebooksPanel");
+  setActiveLibraryPanel("libraryHubPanel");
+  renderLibraryHub();
   initLorebookV2();
   renderRecentChats();
   renderImpersonationOptions();
@@ -901,6 +908,10 @@ function bindEvents() {
   els.navCards.forEach((card) => {
     card.addEventListener("click", () => {
       switchView(card.dataset.view);
+      if (card.dataset.view === "libraryView") {
+        setActiveLibraryPanel("libraryHubPanel");
+        renderLibraryHub();
+      }
       if (card.dataset.view === "chatsView") {
         state.currentChatId = "";
         state.messages = [];
@@ -923,7 +934,16 @@ function bindEvents() {
   els.characterAvatarImportInput.addEventListener("change", importCharacterFromAvatar);
   els.characterAvatarInput.addEventListener("change", onCharacterAvatarSelected);
   els.libraryCategoryChips?.forEach((chip) => {
-    chip.addEventListener("click", () => setActiveLibraryPanel(chip.dataset.libraryPanel || "libraryLorebooksPanel"));
+    chip.addEventListener("click", () => setActiveLibraryPanel(chip.dataset.libraryPanel || "libraryHubPanel"));
+  });
+
+  els.libraryPanelBackBtns?.forEach((button) => {
+    button.addEventListener("click", () => setActiveLibraryPanel("libraryHubPanel"));
+  });
+
+  els.libraryHubSearchInput?.addEventListener("input", () => {
+    libraryHubSearchQuery = String(els.libraryHubSearchInput.value || "");
+    renderLibraryHub();
   });
   bindLorebookV2Events();
   els.lorebookSearchInput?.addEventListener("input", renderLorebooks);
@@ -2472,23 +2492,53 @@ function saveLorebookSettingsFromInputs() {
   showToast("Lore settings saved", "success");
 }
 
-function setActiveLibraryPanel(panelId = "libraryLorebooksPanel") {
-  const target = panelId || "libraryLorebooksPanel";
+function setActiveLibraryPanel(panelId = "libraryHubPanel") {
+  const target = panelId || "libraryHubPanel";
+  const showHub = target === "libraryHubPanel";
+
   els.libraryPanels?.forEach((panel) => {
     panel.classList.toggle("hidden", panel.id !== target);
     panel.classList.toggle("active", panel.id === target);
   });
+
+  if (els.libraryHubPanel) {
+    els.libraryHubPanel.classList.toggle("hidden", !showHub);
+    els.libraryHubPanel.classList.toggle("active", showHub);
+  }
+
   els.libraryCategoryChips?.forEach((chip) => {
     chip.classList.toggle("active", chip.dataset.libraryPanel === target);
   });
 
-  if (target === "libraryLorebooksPanel" && LOREBOOK_V2_ENABLED) {
+  if (showHub) {
+    renderLibraryHub();
+  }
+
+  if (!showHub && target === "libraryLorebooksPanel" && LOREBOOK_V2_ENABLED) {
     lbv2SetLevel(1);
     lbv2State.activeLorebookId = "";
     lbv2State.activeEntryId = "";
     lbv2State.bulkMode = false;
     lbv2State.bulkSelectedEntryIds = new Set();
     renderLorebooksV2();
+  }
+}
+
+function renderLibraryHub() {
+  const chips = els.libraryCategoryChips || [];
+  const query = String(libraryHubSearchQuery || "").trim().toLowerCase();
+  let visibleCount = 0;
+
+  chips.forEach((chip) => {
+    const label = String(chip.textContent || "").toLowerCase();
+    const keywords = String(chip.dataset.librarySearch || "").toLowerCase();
+    const matches = !query || label.includes(query) || keywords.includes(query);
+    chip.classList.toggle("hidden", !matches);
+    if (matches) visibleCount += 1;
+  });
+
+  if (els.libraryHubEmptyState) {
+    els.libraryHubEmptyState.classList.toggle("hidden", visibleCount > 0);
   }
 }
 
@@ -2709,7 +2759,8 @@ function hideLorebookForm() {
   renderLorebookEntryDraft();
   setInlineStatus(els.lorebookEditorStatus, "");
   switchView("libraryView");
-  setActiveLibraryPanel("libraryLorebooksPanel");
+  setActiveLibraryPanel("libraryHubPanel");
+  renderLibraryHub();
 }
 
 function clearLorebookEntryLongPressState() {
@@ -3413,7 +3464,7 @@ function lbv2NavigateTo(level = 1) {
 
 function lbv2NavigateBack() {
   if (lbv2State.level <= 1) {
-    switchView("homeView");
+    setActiveLibraryPanel("libraryHubPanel");
     return;
   }
 
@@ -3641,6 +3692,10 @@ function initLorebookV2() {
   lbv2SyncStack();
   lbv2UpdateSwitchAria();
   renderLorebooksV2();
+}
+
+function openLibraryLorebooksPanel() {
+  setActiveLibraryPanel("libraryLorebooksPanel");
 }
 
 function bindLorebookV2Events() {
