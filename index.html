@@ -805,37 +805,530 @@
           </button>
         </div>
 
-        <section id="libraryLorebooksPanel" class="library-panel active">
-          <div class="toolbar lorebook-inline-toolbar">
-            <input id="lorebookSearchInput" type="search" placeholder="Search lorebooks" />
-            <button id="lorebookImportBtn" class="secondary" type="button">Import (SillyTavern)</button>
-            <button id="lorebookNewBtn" class="primary" type="button">New lorebook</button>
+        <section id="libraryLorebooksPanel" class="library-panel active lorebook-v2-panel">
+          <div id="lbv2Stack" class="lbv2-stack" data-level="1" data-anim="none">
+            <section id="lbv2Level1" class="lbv2-level active" data-level="1" aria-label="Lorebook list">
+              <header class="lbv2-topbar">
+                <button id="lbv2BackLibraryBtn" class="lbv2-topbar-btn" type="button" aria-label="Back to library">
+                  <span class="lbv2-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+                  </span>
+                  <span>Library</span>
+                </button>
+                <h3 class="lbv2-topbar-title">Lorebooks</h3>
+                <div class="lbv2-topbar-actions">
+                  <button id="lbv2CreateLorebookTopBtn" class="lbv2-icon-btn" type="button" aria-label="Create lorebook">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+                  </button>
+                  <button id="lbv2LorebookOverflowBtn" class="lbv2-icon-btn" type="button" aria-label="Lorebook options">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"></circle><circle cx="12" cy="12" r="1.7"></circle><circle cx="12" cy="19" r="1.7"></circle></svg>
+                  </button>
+                </div>
+              </header>
+
+              <label class="lbv2-search" aria-label="Search lorebooks">
+                <span class="lbv2-search-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+                </span>
+                <input id="lbv2LorebookSearchInput" type="search" placeholder="Search lorebooks..." />
+              </label>
+
+              <section id="lbv2LorebookList" class="lbv2-scroll-list" aria-label="Lorebooks"></section>
+
+              <section id="lbv2LorebookEmptyState" class="lbv2-empty hidden" aria-live="polite">
+                <div class="lbv2-empty-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                </div>
+                <h4>No lorebooks yet</h4>
+                <p>Create one to start building your world</p>
+                <button id="lbv2EmptyCreateBtn" class="lbv2-primary-btn" type="button">
+                  <span class="lbv2-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+                  </span>
+                  <span>Create Lorebook</span>
+                </button>
+              </section>
+
+              <button id="lbv2LorebookFab" class="lbv2-fab" type="button" aria-label="Create lorebook">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+              </button>
+            </section>
+
+            <section id="lbv2Level2" class="lbv2-level" data-level="2" aria-label="Entry list">
+              <header id="lbv2EntriesTopbar" class="lbv2-topbar">
+                <button id="lbv2EntriesBackBtn" class="lbv2-topbar-btn" type="button" aria-label="Back to lorebooks">
+                  <span class="lbv2-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+                  </span>
+                  <span id="lbv2EntriesBackLabel">Lorebooks</span>
+                </button>
+                <h3 id="lbv2EntriesTitle" class="lbv2-topbar-title">Entries</h3>
+                <div class="lbv2-topbar-actions">
+                  <button id="lbv2LorebookSettingsBtn" class="lbv2-icon-btn" type="button" aria-label="Lorebook settings">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.08a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.08a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.08a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  </button>
+                  <button id="lbv2EntriesOverflowBtn" class="lbv2-icon-btn" type="button" aria-label="Entry options">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"></circle><circle cx="12" cy="12" r="1.7"></circle><circle cx="12" cy="19" r="1.7"></circle></svg>
+                  </button>
+                </div>
+              </header>
+
+              <header id="lbv2BulkTopbar" class="lbv2-topbar hidden">
+                <button id="lbv2BulkCancelBtn" class="lbv2-topbar-btn" type="button" aria-label="Cancel bulk select">
+                  <span>Cancel</span>
+                </button>
+                <h3 id="lbv2BulkTitle" class="lbv2-topbar-title">0 selected</h3>
+                <button id="lbv2BulkActionsBtn" class="lbv2-icon-btn" type="button" aria-label="Bulk actions">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"></circle><circle cx="12" cy="12" r="1.7"></circle><circle cx="12" cy="19" r="1.7"></circle></svg>
+                </button>
+              </header>
+
+              <label class="lbv2-search" aria-label="Search entries">
+                <span class="lbv2-search-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+                </span>
+                <input id="lbv2EntrySearchInput" type="search" placeholder="Search entries..." />
+              </label>
+
+              <section id="lbv2FilterChipRow" class="lbv2-chip-row hidden" aria-label="Active filters"></section>
+
+              <section id="lbv2EntryList" class="lbv2-scroll-list lbv2-entry-list" aria-label="Entry list"></section>
+
+              <section id="lbv2EntryEmptyState" class="lbv2-empty hidden" aria-live="polite">
+                <div class="lbv2-empty-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M9 13h6"></path><path d="M9 17h4"></path></svg>
+                </div>
+                <h4>No entries yet</h4>
+                <p>Tap + to create your first entry</p>
+                <button id="lbv2EmptyEntryCreateBtn" class="lbv2-primary-btn" type="button">
+                  <span class="lbv2-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+                  </span>
+                  <span>New Entry</span>
+                </button>
+              </section>
+
+              <footer id="lbv2EntryFooter" class="lbv2-footer-bar">
+                <div id="lbv2EntryCountLabel" class="lbv2-footer-meta">0 entries</div>
+                <div id="lbv2EntryTokenLabel" class="lbv2-footer-meta">0 tk total</div>
+                <button id="lbv2EntryNewBtn" class="lbv2-footer-add-btn" type="button">
+                  <span class="lbv2-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+                  </span>
+                  <span>New</span>
+                </button>
+              </footer>
+            </section>
+
+            <section id="lbv2Level3" class="lbv2-level" data-level="3" aria-label="Entry editor">
+              <header class="lbv2-topbar">
+                <button id="lbv2EditorBackBtn" class="lbv2-topbar-btn" type="button" aria-label="Back to entries">
+                  <span class="lbv2-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+                  </span>
+                  <span>Entries</span>
+                </button>
+                <h3 id="lbv2EditorTopTitle" class="lbv2-topbar-title">Entry</h3>
+                <div class="lbv2-topbar-actions">
+                  <span id="lbv2SaveIndicator" class="lbv2-save-indicator" aria-live="polite"></span>
+                  <button id="lbv2EditorOverflowBtn" class="lbv2-icon-btn" type="button" aria-label="Entry actions">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"></circle><circle cx="12" cy="12" r="1.7"></circle><circle cx="12" cy="19" r="1.7"></circle></svg>
+                  </button>
+                </div>
+              </header>
+
+              <section id="lbv2EditorBody" class="lbv2-editor-body">
+                <article class="lbv2-accordion open" data-accordion="basic">
+                  <button class="lbv2-accordion-header" type="button" aria-expanded="true">
+                    <span>Basic</span>
+                    <span class="lbv2-accordion-chevron" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+                    </span>
+                  </button>
+                  <div class="lbv2-accordion-content">
+                    <label class="lbv2-field">
+                      <span class="lbv2-label">Name</span>
+                      <input id="lbv2EntryNameInput" type="text" placeholder="Entry name..." />
+                    </label>
+                    <label class="lbv2-field">
+                      <span class="lbv2-label">Comment <small>(not sent to AI)</small></span>
+                      <textarea id="lbv2EntryCommentInput" rows="2" placeholder="Personal notes about this entry..."></textarea>
+                    </label>
+                  </div>
+                </article>
+
+                <article class="lbv2-accordion open" data-accordion="triggers">
+                  <button class="lbv2-accordion-header" type="button" aria-expanded="true">
+                    <span>Triggers</span>
+                    <span class="lbv2-accordion-chevron" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+                    </span>
+                  </button>
+                  <div class="lbv2-accordion-content">
+                    <label class="lbv2-field">
+                      <span class="lbv2-label">Primary Keys</span>
+                      <small class="lbv2-helper">Comma-separated. Entry activates when found in chat.</small>
+                      <textarea id="lbv2PrimaryKeysInput" rows="3" placeholder="keyword1, keyword2, keyword3"></textarea>
+                    </label>
+                    <div id="lbv2PrimaryKeysPreview" class="lbv2-chip-row" aria-label="Primary key preview"></div>
+
+                    <label class="lbv2-field">
+                      <span class="lbv2-label">Secondary Keys</span>
+                      <small class="lbv2-helper">Optional. Used with AND-OR logic.</small>
+                      <textarea id="lbv2SecondaryKeysInput" rows="2" placeholder="secondary1, secondary2"></textarea>
+                    </label>
+
+                    <fieldset class="lbv2-fieldset">
+                      <legend class="lbv2-label">Activation Logic</legend>
+                      <label class="lbv2-radio-row"><input id="lbv2ActivationAnyInput" type="radio" name="lbv2ActivationLogic" value="ANY" checked /> <span>ANY primary key matches (OR)</span></label>
+                      <label class="lbv2-radio-row"><input id="lbv2ActivationAllInput" type="radio" name="lbv2ActivationLogic" value="ALL" /> <span>ALL primary keys must match (AND)</span></label>
+                      <label class="lbv2-radio-row"><input id="lbv2ActivationAndOrInput" type="radio" name="lbv2ActivationLogic" value="AND_ANY_SECONDARY" /> <span>ANY primary AND ANY secondary (AND-OR)</span></label>
+                      <label class="lbv2-radio-row"><input id="lbv2ActivationNotInput" type="radio" name="lbv2ActivationLogic" value="NOT" /> <span>NOT — exclude when key found</span></label>
+                    </fieldset>
+
+                    <label class="lbv2-toggle-row"><span>Case Sensitive</span><input id="lbv2CaseSensitiveInput" type="checkbox" role="switch" aria-checked="false" /></label>
+                    <label class="lbv2-toggle-row"><span>Match Whole Words</span><input id="lbv2WholeWordsInput" type="checkbox" role="switch" aria-checked="false" /></label>
+                    <label class="lbv2-toggle-row"><span>Use Regex</span><input id="lbv2RegexInput" type="checkbox" role="switch" aria-checked="false" /></label>
+                    <small id="lbv2RegexHelper" class="lbv2-helper hidden">Primary keys are treated as regular expressions</small>
+
+                    <label class="lbv2-field">
+                      <span class="lbv2-label">Scan Depth</span>
+                      <small class="lbv2-helper">How many messages back to scan for triggers</small>
+                      <div class="lbv2-stepper">
+                        <button type="button" class="lbv2-stepper-btn" data-step-target="lbv2ScanDepthInput" data-step="-1">−</button>
+                        <input id="lbv2ScanDepthInput" type="number" min="0" value="10" />
+                        <button type="button" class="lbv2-stepper-btn" data-step-target="lbv2ScanDepthInput" data-step="1">+</button>
+                        <span class="lbv2-stepper-suffix">messages</span>
+                      </div>
+                    </label>
+
+                    <label class="lbv2-field">
+                      <span class="lbv2-label">Token Budget</span>
+                      <small class="lbv2-helper">Max tokens this entry can use (0 = use lorebook global)</small>
+                      <div class="lbv2-stepper">
+                        <button type="button" class="lbv2-stepper-btn" data-step-target="lbv2PerEntryTokenBudgetInput" data-step="-1">−</button>
+                        <input id="lbv2PerEntryTokenBudgetInput" type="number" min="0" value="0" />
+                        <button type="button" class="lbv2-stepper-btn" data-step-target="lbv2PerEntryTokenBudgetInput" data-step="1">+</button>
+                        <span class="lbv2-stepper-suffix">tokens</span>
+                      </div>
+                    </label>
+                  </div>
+                </article>
+
+                <article class="lbv2-accordion open" data-accordion="content">
+                  <button class="lbv2-accordion-header" type="button" aria-expanded="true">
+                    <span>Content</span>
+                    <span class="lbv2-accordion-chevron" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+                    </span>
+                  </button>
+                  <div class="lbv2-accordion-content">
+                    <div class="lbv2-label-row">
+                      <span class="lbv2-label">Entry Content</span>
+                      <span id="lbv2ContentTokenCount" class="lbv2-token-pill">0 tk</span>
+                    </div>
+                    <textarea id="lbv2EntryContentInput" class="lbv2-content-textarea" rows="10" placeholder="Write the lore content that will be injected into context..."></textarea>
+                    <small id="lbv2TriggerWarning" class="lbv2-warning hidden">No triggers set — this entry won't activate</small>
+                  </div>
+                </article>
+
+                <article class="lbv2-accordion" data-accordion="insertion">
+                  <button class="lbv2-accordion-header" type="button" aria-expanded="false">
+                    <span>Insertion Settings</span>
+                    <span class="lbv2-accordion-chevron" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+                    </span>
+                  </button>
+                  <div class="lbv2-accordion-content">
+                    <label class="lbv2-field">
+                      <span class="lbv2-label">Insertion Position</span>
+                      <button id="lbv2InsertionPositionBtn" class="lbv2-select-btn" type="button" data-picker="insertion-position">After System Prompt</button>
+                      <input id="lbv2InsertionPositionInput" type="hidden" value="after_system" />
+                    </label>
+
+                    <label id="lbv2InsertionDepthField" class="lbv2-field hidden">
+                      <span class="lbv2-label">Depth</span>
+                      <small class="lbv2-helper">0 = bottom of chat, higher = further back</small>
+                      <div class="lbv2-stepper">
+                        <button type="button" class="lbv2-stepper-btn" data-step-target="lbv2InsertionDepthInput" data-step="-1">−</button>
+                        <input id="lbv2InsertionDepthInput" type="number" min="0" value="4" />
+                        <button type="button" class="lbv2-stepper-btn" data-step-target="lbv2InsertionDepthInput" data-step="1">+</button>
+                      </div>
+                    </label>
+
+                    <label class="lbv2-field">
+                      <span class="lbv2-label">Priority / Order</span>
+                      <small class="lbv2-helper">Higher value = inserted first when budget is tight</small>
+                      <div class="lbv2-stepper">
+                        <button type="button" class="lbv2-stepper-btn" data-step-target="lbv2PriorityInput" data-step="-1">−</button>
+                        <input id="lbv2PriorityInput" type="number" min="0" value="100" />
+                        <button type="button" class="lbv2-stepper-btn" data-step-target="lbv2PriorityInput" data-step="1">+</button>
+                      </div>
+                    </label>
+
+                    <fieldset class="lbv2-segment" aria-label="Message role">
+                      <legend class="lbv2-label">Message Role</legend>
+                      <label><input type="radio" name="lbv2MessageRole" value="system" checked /><span>System</span></label>
+                      <label><input type="radio" name="lbv2MessageRole" value="user" /><span>User</span></label>
+                      <label><input type="radio" name="lbv2MessageRole" value="assistant" /><span>Assistant</span></label>
+                    </fieldset>
+                  </div>
+                </article>
+
+                <article class="lbv2-accordion" data-accordion="status">
+                  <button class="lbv2-accordion-header" type="button" aria-expanded="false">
+                    <span>Status &amp; Behavior</span>
+                    <span class="lbv2-accordion-chevron" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+                    </span>
+                  </button>
+                  <div class="lbv2-accordion-content">
+                    <label class="lbv2-toggle-row lbv2-prominent-toggle"><span>Enabled</span><input id="lbv2EnabledInput" type="checkbox" role="switch" aria-checked="true" checked /></label>
+
+                    <fieldset class="lbv2-fieldset">
+                      <legend class="lbv2-label">Activation Strategy</legend>
+                      <label class="lbv2-radio-row"><input type="radio" name="lbv2Strategy" value="normal" checked /><span>Normal</span></label>
+                      <label class="lbv2-radio-row"><input type="radio" name="lbv2Strategy" value="constant" /><span>Constant</span></label>
+                      <label class="lbv2-radio-row"><input type="radio" name="lbv2Strategy" value="vectorized" /><span>Vectorized</span></label>
+                    </fieldset>
+                    <small id="lbv2ConstantHelper" class="lbv2-helper hidden">This entry will always be included in context (budget permitting)</small>
+
+                    <label class="lbv2-toggle-row"><span>Prevent Recursion</span><input id="lbv2PreventRecursionInput" type="checkbox" role="switch" aria-checked="false" /></label>
+                    <small class="lbv2-helper">This entry's content won't trigger other entries</small>
+
+                    <label class="lbv2-toggle-row"><span>Exclude from Recursion</span><input id="lbv2ExcludeFromRecursionInput" type="checkbox" role="switch" aria-checked="false" /></label>
+                    <small class="lbv2-helper">Other entries' content can't trigger this entry</small>
+
+                    <label class="lbv2-field">
+                      <span class="lbv2-label">Activation Probability</span>
+                      <div class="lbv2-slider-row">
+                        <input id="lbv2ActivationProbabilitySlider" type="range" min="0" max="100" step="1" value="100" />
+                        <input id="lbv2ActivationProbabilityInput" type="number" min="0" max="100" value="100" />
+                      </div>
+                      <small class="lbv2-helper">Chance this entry activates when triggered</small>
+                    </label>
+
+                    <label class="lbv2-field">
+                      <span class="lbv2-label">Group</span>
+                      <input id="lbv2GroupInput" type="text" placeholder="group-name" />
+                      <small class="lbv2-helper">Entries in the same group compete — only one is selected</small>
+                    </label>
+
+                    <label id="lbv2GroupWeightField" class="lbv2-field hidden">
+                      <span class="lbv2-label">Group Weight</span>
+                      <div class="lbv2-stepper">
+                        <button type="button" class="lbv2-stepper-btn" data-step-target="lbv2GroupWeightInput" data-step="-1">−</button>
+                        <input id="lbv2GroupWeightInput" type="number" min="1" value="100" />
+                        <button type="button" class="lbv2-stepper-btn" data-step-target="lbv2GroupWeightInput" data-step="1">+</button>
+                      </div>
+                      <small class="lbv2-helper">Higher weight = more likely to be chosen from group</small>
+                    </label>
+                  </div>
+                </article>
+
+                <article class="lbv2-accordion" data-accordion="organization">
+                  <button class="lbv2-accordion-header" type="button" aria-expanded="false">
+                    <span>Organization</span>
+                    <span class="lbv2-accordion-chevron" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+                    </span>
+                  </button>
+                  <div class="lbv2-accordion-content">
+                    <label class="lbv2-field">
+                      <span class="lbv2-label">Category</span>
+                      <button id="lbv2CategoryPickerBtn" class="lbv2-select-btn" type="button" data-picker="category">Uncategorized</button>
+                      <input id="lbv2CategoryInput" type="hidden" value="" />
+                    </label>
+
+                    <div class="lbv2-field">
+                      <span class="lbv2-label">Tags</span>
+                      <div id="lbv2TagEditor" class="lbv2-tag-editor">
+                        <div id="lbv2TagList" class="lbv2-chip-row"></div>
+                        <input id="lbv2TagInput" type="text" placeholder="Add tag..." />
+                      </div>
+                      <div id="lbv2TagSuggestionList" class="lbv2-suggestion-list hidden"></div>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="lbv2-accordion" data-accordion="advanced">
+                  <button class="lbv2-accordion-header" type="button" aria-expanded="false">
+                    <span>Advanced</span>
+                    <span class="lbv2-accordion-chevron" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+                    </span>
+                  </button>
+                  <div class="lbv2-accordion-content">
+                    <label class="lbv2-field">
+                      <span class="lbv2-label">Automation ID</span>
+                      <small class="lbv2-helper">Unique identifier for programmatic access</small>
+                      <input id="lbv2AutomationIdInput" type="text" placeholder="entry_name_001" />
+                    </label>
+
+                    <div class="lbv2-field">
+                      <span class="lbv2-label">Linked Entries</span>
+                      <small class="lbv2-helper">These entries activate together with this one</small>
+                      <div id="lbv2LinkedEntryList" class="lbv2-chip-row"></div>
+                      <button id="lbv2LinkEntryBtn" class="lbv2-secondary-btn" type="button">Link Entry</button>
+                    </div>
+
+                    <label class="lbv2-field">
+                      <span class="lbv2-label">Sticky Duration</span>
+                      <div class="lbv2-stepper">
+                        <button type="button" class="lbv2-stepper-btn" data-step-target="lbv2StickyInput" data-step="-1">−</button>
+                        <input id="lbv2StickyInput" type="number" min="0" value="0" />
+                        <button type="button" class="lbv2-stepper-btn" data-step-target="lbv2StickyInput" data-step="1">+</button>
+                        <span class="lbv2-stepper-suffix">turns</span>
+                      </div>
+                    </label>
+
+                    <label class="lbv2-field">
+                      <span class="lbv2-label">Cooldown</span>
+                      <div class="lbv2-stepper">
+                        <button type="button" class="lbv2-stepper-btn" data-step-target="lbv2CooldownInput" data-step="-1">−</button>
+                        <input id="lbv2CooldownInput" type="number" min="0" value="0" />
+                        <button type="button" class="lbv2-stepper-btn" data-step-target="lbv2CooldownInput" data-step="1">+</button>
+                        <span class="lbv2-stepper-suffix">turns</span>
+                      </div>
+                    </label>
+
+                    <label class="lbv2-field">
+                      <span class="lbv2-label">Delay</span>
+                      <div class="lbv2-stepper">
+                        <button type="button" class="lbv2-stepper-btn" data-step-target="lbv2DelayInput" data-step="-1">−</button>
+                        <input id="lbv2DelayInput" type="number" min="0" value="0" />
+                        <button type="button" class="lbv2-stepper-btn" data-step-target="lbv2DelayInput" data-step="1">+</button>
+                        <span class="lbv2-stepper-suffix">turns</span>
+                      </div>
+                    </label>
+
+                    <div class="lbv2-field">
+                      <span class="lbv2-label">Active Between Turns</span>
+                      <div class="lbv2-inline-two">
+                        <input id="lbv2TurnStartInput" type="number" min="0" value="0" aria-label="Start turn" />
+                        <input id="lbv2TurnEndInput" type="number" min="0" placeholder="∞" aria-label="End turn" />
+                      </div>
+                    </div>
+                  </div>
+                </article>
+
+                <p id="lbv2EntryMetadata" class="lbv2-entry-meta">Created: — • Modified: —</p>
+              </section>
+            </section>
           </div>
 
-          <input id="lorebookImportInput" type="file" accept="application/json,.json" multiple class="hidden" />
+          <section id="lbv2SettingsModal" class="lbv2-fullsheet hidden" role="dialog" aria-modal="true" aria-labelledby="lbv2SettingsTitle">
+            <header class="lbv2-topbar lbv2-fullsheet-topbar">
+              <button id="lbv2SettingsBackBtn" class="lbv2-topbar-btn" type="button" aria-label="Close settings">
+                <span class="lbv2-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+                </span>
+                <span>Entries</span>
+              </button>
+              <h3 id="lbv2SettingsTitle" class="lbv2-topbar-title">Lorebook Settings</h3>
+              <span class="lbv2-topbar-spacer" aria-hidden="true"></span>
+            </header>
 
-          <section class="provider-form-card">
-            <div class="field-grid">
-              <label class="field">
-                <span>Scan depth (messages)</span>
-                <input id="lorebookScanDepthInput" type="number" min="1" max="64" step="1" />
-              </label>
-              <label class="field">
-                <span>Token budget (approx)</span>
-                <input id="lorebookTokenBudgetInput" type="number" min="64" max="8000" step="16" />
-              </label>
-              <label class="field checkbox-field">
-                <span>Recursive scanning</span>
-                <input id="lorebookRecursiveInput" type="checkbox" />
-              </label>
-            </div>
-            <div class="button-row inline-controls">
-              <button id="saveLorebookSettingsBtn" class="secondary" type="button">Save lore settings</button>
-              <span id="lorebookSettingsStatus" class="inline-status" aria-live="polite"></span>
-            </div>
+            <section class="lbv2-editor-body">
+              <article class="lbv2-accordion open" data-accordion="settings-general">
+                <button class="lbv2-accordion-header" type="button" aria-expanded="true"><span>General</span><span class="lbv2-accordion-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></span></button>
+                <div class="lbv2-accordion-content">
+                  <label class="lbv2-field"><span class="lbv2-label">Lorebook Name</span><input id="lbv2SettingsNameInput" type="text" /></label>
+                  <label class="lbv2-field"><span class="lbv2-label">Description</span><textarea id="lbv2SettingsDescriptionInput" rows="3"></textarea></label>
+                  <div class="lbv2-field"><span class="lbv2-label">Cover Color</span><div id="lbv2SettingsColorDots" class="lbv2-color-dot-row"></div></div>
+                </div>
+              </article>
+
+              <article class="lbv2-accordion" data-accordion="settings-budget">
+                <button class="lbv2-accordion-header" type="button" aria-expanded="false"><span>Token Budget</span><span class="lbv2-accordion-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></span></button>
+                <div class="lbv2-accordion-content">
+                  <label class="lbv2-field">
+                    <span class="lbv2-label">Global Token Budget</span>
+                    <div class="lbv2-stepper"><button type="button" class="lbv2-stepper-btn" data-step-target="lbv2SettingsTokenBudgetInput" data-step="-16">−</button><input id="lbv2SettingsTokenBudgetInput" type="number" min="64" step="16" value="2048" /><button type="button" class="lbv2-stepper-btn" data-step-target="lbv2SettingsTokenBudgetInput" data-step="16">+</button></div>
+                    <small class="lbv2-helper">Maximum total tokens all triggered entries can consume</small>
+                  </label>
+                </div>
+              </article>
+
+              <article class="lbv2-accordion" data-accordion="settings-defaults">
+                <button class="lbv2-accordion-header" type="button" aria-expanded="false"><span>Default Settings for New Entries</span><span class="lbv2-accordion-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></span></button>
+                <div class="lbv2-accordion-content">
+                  <label class="lbv2-field"><span class="lbv2-label">Default Position</span><button id="lbv2SettingsDefaultPositionBtn" class="lbv2-select-btn" type="button" data-picker="default-position">After System Prompt</button><input id="lbv2SettingsDefaultPositionInput" type="hidden" value="after_system" /></label>
+                  <label class="lbv2-field"><span class="lbv2-label">Default Scan Depth</span><input id="lbv2SettingsDefaultScanDepthInput" type="number" min="0" value="10" /></label>
+                  <label class="lbv2-field"><span class="lbv2-label">Default Insertion Order</span><input id="lbv2SettingsDefaultOrderInput" type="number" min="0" value="100" /></label>
+                  <label class="lbv2-toggle-row"><span>Default Enabled</span><input id="lbv2SettingsDefaultEnabledInput" type="checkbox" checked /></label>
+                  <label class="lbv2-toggle-row"><span>Default Case Sensitive</span><input id="lbv2SettingsDefaultCaseInput" type="checkbox" /></label>
+                </div>
+              </article>
+
+              <article class="lbv2-accordion" data-accordion="settings-recursion">
+                <button class="lbv2-accordion-header" type="button" aria-expanded="false"><span>Recursive Scanning</span><span class="lbv2-accordion-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></span></button>
+                <div class="lbv2-accordion-content">
+                  <label class="lbv2-toggle-row"><span>Enable Recursive Scanning</span><input id="lbv2SettingsRecursiveInput" type="checkbox" checked /></label>
+                  <label id="lbv2SettingsRecursionDepthField" class="lbv2-field"><span class="lbv2-label">Max Recursion Depth</span><input id="lbv2SettingsRecursionDepthInput" type="number" min="0" value="3" /></label>
+                  <small class="lbv2-helper">Activated entries' content is scanned to trigger other entries</small>
+                </div>
+              </article>
+
+              <article class="lbv2-accordion" data-accordion="settings-attachment">
+                <button class="lbv2-accordion-header" type="button" aria-expanded="false"><span>Attachment</span><span class="lbv2-accordion-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></span></button>
+                <div class="lbv2-accordion-content">
+                  <fieldset class="lbv2-fieldset">
+                    <legend class="lbv2-label">Scope</legend>
+                    <label class="lbv2-radio-row"><input type="radio" name="lbv2AttachmentScope" value="specific" checked /><span>Specific Chats</span></label>
+                    <label class="lbv2-radio-row"><input type="radio" name="lbv2AttachmentScope" value="character" /><span>All Chats with Character</span></label>
+                    <label class="lbv2-radio-row"><input type="radio" name="lbv2AttachmentScope" value="global" /><span>Global (all chats)</span></label>
+                  </fieldset>
+                  <label class="lbv2-field hidden" id="lbv2AttachmentCharacterField"><span class="lbv2-label">Character</span><select id="lbv2AttachmentCharacterSelect"></select></label>
+                  <div id="lbv2AttachmentChatWrap" class="lbv2-field">
+                    <span class="lbv2-label">Attached Chats</span>
+                    <div id="lbv2AttachmentChatChipRow" class="lbv2-chip-row"></div>
+                    <button id="lbv2AttachChatBtn" class="lbv2-secondary-btn" type="button">Attach to Chat</button>
+                  </div>
+                </div>
+              </article>
+
+              <article class="lbv2-accordion" data-accordion="settings-io">
+                <button class="lbv2-accordion-header" type="button" aria-expanded="false"><span>Import / Export</span><span class="lbv2-accordion-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></span></button>
+                <div class="lbv2-accordion-content">
+                  <button id="lbv2ExportJsonBtn" class="lbv2-secondary-btn lbv2-full-btn" type="button">Export as JSON</button>
+                  <button id="lbv2ExportStBtn" class="lbv2-secondary-btn lbv2-full-btn" type="button">Export as SillyTavern Format</button>
+                  <button id="lbv2ImportEntriesBtn" class="lbv2-secondary-btn lbv2-full-btn" type="button">Import Entries (merge into this lorebook)</button>
+                </div>
+              </article>
+
+              <article class="lbv2-accordion" data-accordion="settings-danger">
+                <button class="lbv2-accordion-header" type="button" aria-expanded="false"><span>Danger Zone</span><span class="lbv2-accordion-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></span></button>
+                <div class="lbv2-accordion-content">
+                  <button id="lbv2DisableAllEntriesBtn" class="lbv2-warning-btn lbv2-full-btn" type="button">Disable All Entries</button>
+                  <button id="lbv2EnableAllEntriesBtn" class="lbv2-secondary-btn lbv2-full-btn" type="button">Enable All Entries</button>
+                  <button id="lbv2DeleteLorebookBtn" class="lbv2-danger-btn lbv2-full-btn" type="button">Delete Entire Lorebook</button>
+                </div>
+              </article>
+            </section>
           </section>
 
-          <section id="lorebookList" class="entity-list"></section>
+          <div id="lbv2SheetBackdrop" class="lbv2-sheet-backdrop hidden" aria-hidden="true">
+            <section id="lbv2Sheet" class="lbv2-bottom-sheet" role="dialog" aria-modal="true" aria-labelledby="lbv2SheetTitle">
+              <div class="lbv2-sheet-handle" aria-hidden="true"></div>
+              <h4 id="lbv2SheetTitle" class="lbv2-sheet-title"></h4>
+              <div id="lbv2SheetContent" class="lbv2-sheet-content"></div>
+            </section>
+          </div>
+
+          <div id="lbv2DialogBackdrop" class="lbv2-dialog-backdrop hidden" aria-hidden="true">
+            <section id="lbv2Dialog" class="lbv2-dialog" role="alertdialog" aria-modal="true" aria-labelledby="lbv2DialogTitle" aria-describedby="lbv2DialogBody">
+              <h4 id="lbv2DialogTitle" class="lbv2-dialog-title"></h4>
+              <p id="lbv2DialogBody" class="lbv2-dialog-body"></p>
+              <div class="lbv2-dialog-actions">
+                <button id="lbv2DialogCancelBtn" class="lbv2-secondary-btn" type="button">Cancel</button>
+                <button id="lbv2DialogConfirmBtn" class="lbv2-danger-btn" type="button">Delete</button>
+              </div>
+            </section>
+          </div>
+
+          <input id="lorebookImportInput" type="file" accept="application/json,.json,.jsonl" multiple class="hidden" />
+          <input id="lbv2EntryImportInput" type="file" accept="application/json,.json,.jsonl" class="hidden" />
         </section>
 
         <section id="libraryScenarioPanel" class="library-panel hidden">

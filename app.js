@@ -180,6 +180,75 @@ let drawerPresetEditorDraft = null;
 let drawerPresetPromptDragIndex = -1;
 let drawerSelectedLogId = "";
 
+
+// Lorebook V2 runtime state
+const LOREBOOK_V2_ENABLED = true;
+const LOREBOOK_V2_COLORS = ["#5B8CFF", "#2EC4B6", "#A78BFA", "#FF7A59", "#F59E0B", "#22C55E", "#EC4899", "#06B6D4"];
+const LOREBOOK_V2_SORT_OPTIONS = {
+  ALPHABETICAL: "alphabetical",
+  DATE_MODIFIED: "date_modified",
+  DATE_CREATED: "date_created",
+  ENTRY_COUNT: "entry_count",
+  MANUAL: "manual",
+  PRIORITY: "priority",
+  TOKEN_COUNT: "token_count",
+  RECENTLY_MODIFIED: "recently_modified",
+};
+
+const LBV2_INJECTION_POSITIONS = [
+  { value: "before_system", label: "Before System Prompt" },
+  { value: "after_system", label: "After System Prompt" },
+  { value: "before_author_note", label: "Before Author's Note" },
+  { value: "after_author_note", label: "After Author's Note" },
+  { value: "top_chat", label: "Top of Chat History" },
+  { value: "bottom_chat", label: "Bottom of Chat History" },
+  { value: "depth", label: "@ Depth" },
+];
+
+let lbv2State = {
+  level: 1,
+  stackHistory: [1],
+  activeLorebookId: "",
+  activeEntryId: "",
+  lorebookSearchQuery: "",
+  entrySearchQuery: "",
+  lorebookSortBy: LOREBOOK_V2_SORT_OPTIONS.DATE_MODIFIED,
+  entrySortBy: LOREBOOK_V2_SORT_OPTIONS.MANUAL,
+  entryFilter: "all",
+  entryTagFilter: "",
+  bulkMode: false,
+  bulkSelectedEntryIds: new Set(),
+  expandedEntrySwipeId: "",
+  editingEntry: null,
+  sheet: {
+    key: "",
+    payload: null,
+  },
+  dialog: {
+    onConfirm: null,
+  },
+  saveIndicatorTimer: null,
+  autosaveTimer: null,
+  suppressEditorEvents: false,
+  gesture: {
+    pointerId: null,
+    startX: 0,
+    startY: 0,
+    tracking: false,
+  },
+  drag: {
+    pointerId: null,
+    sourceId: "",
+    targetId: "",
+    active: false,
+    timer: null,
+  },
+  stepperHold: {
+    timer: null,
+    interval: null,
+  },
+};
+
 const els = {
   welcomeScreen: document.getElementById("welcomeScreen"),
   appShell: document.getElementById("appShell"),
@@ -492,6 +561,130 @@ const els = {
   importDataBtn: document.getElementById("importDataBtn"),
   importDataInput: document.getElementById("importDataInput"),
   dataStatus: document.getElementById("dataStatus"),
+
+  // Lorebook V2 nodes
+  lbv2Panel: document.querySelector("#libraryLorebooksPanel.lorebook-v2-panel"),
+  lbv2Stack: document.getElementById("lbv2Stack"),
+  lbv2Level1: document.getElementById("lbv2Level1"),
+  lbv2Level2: document.getElementById("lbv2Level2"),
+  lbv2Level3: document.getElementById("lbv2Level3"),
+  lbv2BackLibraryBtn: document.getElementById("lbv2BackLibraryBtn"),
+  lbv2CreateLorebookTopBtn: document.getElementById("lbv2CreateLorebookTopBtn"),
+  lbv2LorebookOverflowBtn: document.getElementById("lbv2LorebookOverflowBtn"),
+  lbv2LorebookSearchInput: document.getElementById("lbv2LorebookSearchInput"),
+  lbv2LorebookList: document.getElementById("lbv2LorebookList"),
+  lbv2LorebookEmptyState: document.getElementById("lbv2LorebookEmptyState"),
+  lbv2EmptyCreateBtn: document.getElementById("lbv2EmptyCreateBtn"),
+  lbv2LorebookFab: document.getElementById("lbv2LorebookFab"),
+  lbv2EntriesTopbar: document.getElementById("lbv2EntriesTopbar"),
+  lbv2BulkTopbar: document.getElementById("lbv2BulkTopbar"),
+  lbv2EntriesBackBtn: document.getElementById("lbv2EntriesBackBtn"),
+  lbv2EntriesBackLabel: document.getElementById("lbv2EntriesBackLabel"),
+  lbv2EntriesTitle: document.getElementById("lbv2EntriesTitle"),
+  lbv2LorebookSettingsBtn: document.getElementById("lbv2LorebookSettingsBtn"),
+  lbv2EntriesOverflowBtn: document.getElementById("lbv2EntriesOverflowBtn"),
+  lbv2BulkCancelBtn: document.getElementById("lbv2BulkCancelBtn"),
+  lbv2BulkTitle: document.getElementById("lbv2BulkTitle"),
+  lbv2BulkActionsBtn: document.getElementById("lbv2BulkActionsBtn"),
+  lbv2EntrySearchInput: document.getElementById("lbv2EntrySearchInput"),
+  lbv2FilterChipRow: document.getElementById("lbv2FilterChipRow"),
+  lbv2EntryList: document.getElementById("lbv2EntryList"),
+  lbv2EntryEmptyState: document.getElementById("lbv2EntryEmptyState"),
+  lbv2EmptyEntryCreateBtn: document.getElementById("lbv2EmptyEntryCreateBtn"),
+  lbv2EntryFooter: document.getElementById("lbv2EntryFooter"),
+  lbv2EntryCountLabel: document.getElementById("lbv2EntryCountLabel"),
+  lbv2EntryTokenLabel: document.getElementById("lbv2EntryTokenLabel"),
+  lbv2EntryNewBtn: document.getElementById("lbv2EntryNewBtn"),
+  lbv2EditorBackBtn: document.getElementById("lbv2EditorBackBtn"),
+  lbv2EditorTopTitle: document.getElementById("lbv2EditorTopTitle"),
+  lbv2SaveIndicator: document.getElementById("lbv2SaveIndicator"),
+  lbv2EditorOverflowBtn: document.getElementById("lbv2EditorOverflowBtn"),
+  lbv2EditorBody: document.getElementById("lbv2EditorBody"),
+  lbv2Accordions: Array.from(document.querySelectorAll("#lbv2EditorBody .lbv2-accordion")),
+  lbv2EntryNameInput: document.getElementById("lbv2EntryNameInput"),
+  lbv2EntryCommentInput: document.getElementById("lbv2EntryCommentInput"),
+  lbv2PrimaryKeysInput: document.getElementById("lbv2PrimaryKeysInput"),
+  lbv2PrimaryKeysPreview: document.getElementById("lbv2PrimaryKeysPreview"),
+  lbv2SecondaryKeysInput: document.getElementById("lbv2SecondaryKeysInput"),
+  lbv2ActivationAnyInput: document.getElementById("lbv2ActivationAnyInput"),
+  lbv2ActivationAllInput: document.getElementById("lbv2ActivationAllInput"),
+  lbv2ActivationAndOrInput: document.getElementById("lbv2ActivationAndOrInput"),
+  lbv2ActivationNotInput: document.getElementById("lbv2ActivationNotInput"),
+  lbv2CaseSensitiveInput: document.getElementById("lbv2CaseSensitiveInput"),
+  lbv2WholeWordsInput: document.getElementById("lbv2WholeWordsInput"),
+  lbv2RegexInput: document.getElementById("lbv2RegexInput"),
+  lbv2RegexHelper: document.getElementById("lbv2RegexHelper"),
+  lbv2ScanDepthInput: document.getElementById("lbv2ScanDepthInput"),
+  lbv2PerEntryTokenBudgetInput: document.getElementById("lbv2PerEntryTokenBudgetInput"),
+  lbv2EntryContentInput: document.getElementById("lbv2EntryContentInput"),
+  lbv2ContentTokenCount: document.getElementById("lbv2ContentTokenCount"),
+  lbv2TriggerWarning: document.getElementById("lbv2TriggerWarning"),
+  lbv2InsertionPositionBtn: document.getElementById("lbv2InsertionPositionBtn"),
+  lbv2InsertionPositionInput: document.getElementById("lbv2InsertionPositionInput"),
+  lbv2InsertionDepthField: document.getElementById("lbv2InsertionDepthField"),
+  lbv2InsertionDepthInput: document.getElementById("lbv2InsertionDepthInput"),
+  lbv2PriorityInput: document.getElementById("lbv2PriorityInput"),
+  lbv2EnabledInput: document.getElementById("lbv2EnabledInput"),
+  lbv2ConstantHelper: document.getElementById("lbv2ConstantHelper"),
+  lbv2PreventRecursionInput: document.getElementById("lbv2PreventRecursionInput"),
+  lbv2ExcludeFromRecursionInput: document.getElementById("lbv2ExcludeFromRecursionInput"),
+  lbv2ActivationProbabilitySlider: document.getElementById("lbv2ActivationProbabilitySlider"),
+  lbv2ActivationProbabilityInput: document.getElementById("lbv2ActivationProbabilityInput"),
+  lbv2GroupInput: document.getElementById("lbv2GroupInput"),
+  lbv2GroupWeightField: document.getElementById("lbv2GroupWeightField"),
+  lbv2GroupWeightInput: document.getElementById("lbv2GroupWeightInput"),
+  lbv2CategoryPickerBtn: document.getElementById("lbv2CategoryPickerBtn"),
+  lbv2CategoryInput: document.getElementById("lbv2CategoryInput"),
+  lbv2TagList: document.getElementById("lbv2TagList"),
+  lbv2TagInput: document.getElementById("lbv2TagInput"),
+  lbv2TagSuggestionList: document.getElementById("lbv2TagSuggestionList"),
+  lbv2AutomationIdInput: document.getElementById("lbv2AutomationIdInput"),
+  lbv2LinkedEntryList: document.getElementById("lbv2LinkedEntryList"),
+  lbv2LinkEntryBtn: document.getElementById("lbv2LinkEntryBtn"),
+  lbv2StickyInput: document.getElementById("lbv2StickyInput"),
+  lbv2CooldownInput: document.getElementById("lbv2CooldownInput"),
+  lbv2DelayInput: document.getElementById("lbv2DelayInput"),
+  lbv2TurnStartInput: document.getElementById("lbv2TurnStartInput"),
+  lbv2TurnEndInput: document.getElementById("lbv2TurnEndInput"),
+  lbv2EntryMetadata: document.getElementById("lbv2EntryMetadata"),
+
+  lbv2SettingsModal: document.getElementById("lbv2SettingsModal"),
+  lbv2SettingsBackBtn: document.getElementById("lbv2SettingsBackBtn"),
+  lbv2SettingsNameInput: document.getElementById("lbv2SettingsNameInput"),
+  lbv2SettingsDescriptionInput: document.getElementById("lbv2SettingsDescriptionInput"),
+  lbv2SettingsColorDots: document.getElementById("lbv2SettingsColorDots"),
+  lbv2SettingsTokenBudgetInput: document.getElementById("lbv2SettingsTokenBudgetInput"),
+  lbv2SettingsDefaultPositionBtn: document.getElementById("lbv2SettingsDefaultPositionBtn"),
+  lbv2SettingsDefaultPositionInput: document.getElementById("lbv2SettingsDefaultPositionInput"),
+  lbv2SettingsDefaultScanDepthInput: document.getElementById("lbv2SettingsDefaultScanDepthInput"),
+  lbv2SettingsDefaultOrderInput: document.getElementById("lbv2SettingsDefaultOrderInput"),
+  lbv2SettingsDefaultEnabledInput: document.getElementById("lbv2SettingsDefaultEnabledInput"),
+  lbv2SettingsDefaultCaseInput: document.getElementById("lbv2SettingsDefaultCaseInput"),
+  lbv2SettingsRecursiveInput: document.getElementById("lbv2SettingsRecursiveInput"),
+  lbv2SettingsRecursionDepthField: document.getElementById("lbv2SettingsRecursionDepthField"),
+  lbv2SettingsRecursionDepthInput: document.getElementById("lbv2SettingsRecursionDepthInput"),
+  lbv2AttachmentCharacterField: document.getElementById("lbv2AttachmentCharacterField"),
+  lbv2AttachmentCharacterSelect: document.getElementById("lbv2AttachmentCharacterSelect"),
+  lbv2AttachmentChatWrap: document.getElementById("lbv2AttachmentChatWrap"),
+  lbv2AttachmentChatChipRow: document.getElementById("lbv2AttachmentChatChipRow"),
+  lbv2AttachChatBtn: document.getElementById("lbv2AttachChatBtn"),
+  lbv2ExportJsonBtn: document.getElementById("lbv2ExportJsonBtn"),
+  lbv2ExportStBtn: document.getElementById("lbv2ExportStBtn"),
+  lbv2ImportEntriesBtn: document.getElementById("lbv2ImportEntriesBtn"),
+  lbv2DisableAllEntriesBtn: document.getElementById("lbv2DisableAllEntriesBtn"),
+  lbv2EnableAllEntriesBtn: document.getElementById("lbv2EnableAllEntriesBtn"),
+  lbv2DeleteLorebookBtn: document.getElementById("lbv2DeleteLorebookBtn"),
+
+  lbv2SheetBackdrop: document.getElementById("lbv2SheetBackdrop"),
+  lbv2Sheet: document.getElementById("lbv2Sheet"),
+  lbv2SheetTitle: document.getElementById("lbv2SheetTitle"),
+  lbv2SheetContent: document.getElementById("lbv2SheetContent"),
+  lbv2DialogBackdrop: document.getElementById("lbv2DialogBackdrop"),
+  lbv2DialogTitle: document.getElementById("lbv2DialogTitle"),
+  lbv2DialogBody: document.getElementById("lbv2DialogBody"),
+  lbv2DialogCancelBtn: document.getElementById("lbv2DialogCancelBtn"),
+  lbv2DialogConfirmBtn: document.getElementById("lbv2DialogConfirmBtn"),
+  lbv2EntryImportInput: document.getElementById("lbv2EntryImportInput"),
 };
 
 void init();
@@ -508,6 +701,7 @@ async function init() {
   renderPresets();
   renderLorebooks();
   setActiveLibraryPanel("libraryLorebooksPanel");
+  initLorebookV2();
   renderRecentChats();
   renderImpersonationOptions();
   renderDrawerState();
@@ -731,6 +925,7 @@ function bindEvents() {
   els.libraryCategoryChips?.forEach((chip) => {
     chip.addEventListener("click", () => setActiveLibraryPanel(chip.dataset.libraryPanel || "libraryLorebooksPanel"));
   });
+  bindLorebookV2Events();
   els.lorebookSearchInput?.addEventListener("input", renderLorebooks);
   els.lorebookImportBtn?.addEventListener("click", () => els.lorebookImportInput?.click());
   els.lorebookImportInput?.addEventListener("change", importLorebooks);
@@ -1084,7 +1279,11 @@ function refreshRecentChatsFromState() {
 }
 
 function syncCurrentChatFromState() {
-  const chat = ensureCurrentChat();
+  const chat = getCurrentChat();
+  if (!chat) {
+    refreshRecentChatsFromState();
+    return;
+  }
   chat.title = state.currentChatTitle || chat.title || "New chat";
   chat.messages = state.messages.map((message) => ({ ...message }));
   chat.lorebookIds = Array.isArray(chat.lorebookIds) ? [...new Set(chat.lorebookIds.map((id) => String(id || "").trim()).filter(Boolean))] : [];
@@ -1800,6 +1999,7 @@ function normalizeLorebookEntry(entry = {}, index = 0) {
     || entry.key_secondary
     || []
   );
+
   const content = String(
     entry.content
     ?? entry.text
@@ -1810,30 +2010,87 @@ function normalizeLorebookEntry(entry = {}, index = 0) {
     ?? entry.description
     ?? ""
   ).trim();
+
   const insertionOrder = Number.isFinite(Number(entry.insertion_order ?? entry.insertionOrder ?? entry.order ?? entry.uid))
     ? Number(entry.insertion_order ?? entry.insertionOrder ?? entry.order ?? entry.uid)
     : index;
-  const priority = Number.isFinite(Number(entry.priority ?? entry.weight)) ? Number(entry.priority ?? entry.weight) : 100;
-  const probabilityRaw = Number(entry.probability ?? entry.chance ?? 100);
+
+  const priority = Number.isFinite(Number(entry.priority ?? entry.weight))
+    ? Number(entry.priority ?? entry.weight)
+    : Number.isFinite(Number(entry.insertionPriority))
+      ? Number(entry.insertionPriority)
+      : 100;
+
+  const probabilityRaw = Number(entry.probability ?? entry.chance ?? entry.activationProbability ?? 100);
   const probability = Math.min(100, Math.max(0, Number.isFinite(probabilityRaw) ? probabilityRaw : 100));
 
   let selectiveLogic = String(entry.selectiveLogic || entry.selective_logic || entry.logic || "AND").trim().toUpperCase();
   if (!["AND", "OR", "NOT"].includes(selectiveLogic)) selectiveLogic = "AND";
 
+  let activationLogic = String(entry.activationLogic || entry.activation_logic || "").trim().toUpperCase();
+  if (!activationLogic) {
+    if (Boolean(entry.selective ?? secondaryKeys.length > 0)) {
+      if (selectiveLogic === "NOT") activationLogic = "NOT";
+      else if (selectiveLogic === "AND") activationLogic = "AND_ANY_SECONDARY";
+      else activationLogic = "ANY";
+    } else {
+      activationLogic = "ANY";
+    }
+  }
+  if (!["ANY", "ALL", "AND_ANY_SECONDARY", "NOT"].includes(activationLogic)) {
+    activationLogic = "ANY";
+  }
+
+  const strategyRaw = String(entry.strategy || entry.activationStrategy || "").trim().toLowerCase();
+  const strategy = ["normal", "constant", "vectorized"].includes(strategyRaw)
+    ? strategyRaw
+    : (entry.constant ? "constant" : "normal");
+
+  const nowIso = new Date().toISOString();
+
   return {
     id: entry.id || entry.uid || crypto.randomUUID(),
     title: String(entry.title || entry.name || entry.comment || `Entry ${index + 1}`),
+    comment: String(entry.comment || entry.note || entry.memo || ""),
     keys,
     secondaryKeys,
+    activationLogic,
+    matchWholeWords: Boolean(entry.matchWholeWords ?? entry.match_whole_words ?? false),
+    useRegex: Boolean(entry.useRegex ?? entry.use_regex ?? false),
     content,
     insertionOrder,
     priority,
+    insertionPosition: String(entry.insertionPosition || entry.insertion_position || "after_system"),
+    insertionDepth: Math.max(0, Number.parseInt(entry.insertionDepth ?? entry.insertion_depth ?? 4, 10) || 4),
+    role: ["system", "user", "assistant"].includes(String(entry.role || "system").toLowerCase())
+      ? String(entry.role || "system").toLowerCase()
+      : "system",
     caseSensitive: Boolean(entry.caseSensitive ?? entry.case_sensitive ?? false),
     selective: Boolean(entry.selective ?? secondaryKeys.length > 0),
     selectiveLogic,
-    constant: Boolean(entry.constant ?? false),
+    scanDepth: Math.max(0, Number.parseInt(entry.scanDepth ?? entry.scan_depth ?? 0, 10) || 0),
+    tokenBudget: Math.max(0, Number.parseInt(entry.tokenBudget ?? entry.token_budget ?? 0, 10) || 0),
+    constant: strategy === "constant" || Boolean(entry.constant ?? false),
+    strategy,
     probability,
     enabled: entry.enabled !== false,
+    preventRecursion: Boolean(entry.preventRecursion ?? entry.prevent_recursion ?? false),
+    excludeFromRecursion: Boolean(entry.excludeFromRecursion ?? entry.exclude_from_recursion ?? false),
+    group: String(entry.group || ""),
+    groupWeight: Math.max(1, Number.parseInt(entry.groupWeight ?? entry.group_weight ?? 100, 10) || 100),
+    category: String(entry.category || ""),
+    tags: normalizeStringArray(entry.tags || entry.tag || []),
+    automationId: String(entry.automationId || entry.automation_id || ""),
+    linkedEntries: normalizeStringArray(entry.linkedEntries || entry.linked_entries || []),
+    sticky: Math.max(0, Number.parseInt(entry.sticky ?? entry.stickyDuration ?? entry.sticky_duration ?? 0, 10) || 0),
+    cooldown: Math.max(0, Number.parseInt(entry.cooldown ?? 0, 10) || 0),
+    delay: Math.max(0, Number.parseInt(entry.delay ?? 0, 10) || 0),
+    turnStart: Math.max(0, Number.parseInt(entry.turnStart ?? entry.turn_start ?? 0, 10) || 0),
+    turnEnd: Number.isFinite(Number.parseInt(entry.turnEnd ?? entry.turn_end, 10))
+      ? Math.max(0, Number.parseInt(entry.turnEnd ?? entry.turn_end, 10))
+      : null,
+    createdAt: String(entry.createdAt || entry.created_at || nowIso),
+    updatedAt: String(entry.updatedAt || entry.updated_at || nowIso),
   };
 }
 
@@ -1906,15 +2163,41 @@ function normalizeLorebookRecord(item = {}) {
   const entries = parseLorebookEntries(source);
   const scanDepthRaw = Number(source.scanDepth ?? source.scan_depth ?? source.depth ?? defaults.lorebookSettings.scanDepth);
   const tokenBudgetRaw = Number(source.tokenBudget ?? source.token_budget ?? source.budget ?? defaults.lorebookSettings.tokenBudget);
+  const recursionDepthRaw = Number(source.maxRecursionDepth ?? source.max_recursion_depth ?? source.recursionDepth ?? source.recursion_depth ?? 3);
+
+  const defaultsSource = source.defaultEntrySettings && typeof source.defaultEntrySettings === "object"
+    ? source.defaultEntrySettings
+    : source.default_entry_settings && typeof source.default_entry_settings === "object"
+      ? source.default_entry_settings
+      : {};
+
+  const nowIso = new Date().toISOString();
+
+  const colorSource = String(source.color || source.coverColor || source.cover_color || LOREBOOK_V2_COLORS[0]);
+  const color = LOREBOOK_V2_COLORS.includes(colorSource) ? colorSource : LOREBOOK_V2_COLORS[0];
 
   return {
     id: item.id || source.id || crypto.randomUUID(),
     name: String(source.name || source.title || item.name || "Imported lorebook"),
     description: String(source.description || item.description || ""),
+    color,
     scanDepth: Math.min(64, Math.max(1, Number.isFinite(scanDepthRaw) ? scanDepthRaw : defaults.lorebookSettings.scanDepth)),
     tokenBudget: Math.min(8000, Math.max(64, Number.isFinite(tokenBudgetRaw) ? tokenBudgetRaw : defaults.lorebookSettings.tokenBudget)),
     recursiveScanning: Boolean(source.recursiveScanning ?? source.recursive_scanning ?? source.recursive ?? defaults.lorebookSettings.recursiveScanning),
+    maxRecursionDepth: Math.min(12, Math.max(0, Number.isFinite(recursionDepthRaw) ? recursionDepthRaw : 3)),
     enabled: item.enabled !== false,
+    attachmentScope: String(source.attachmentScope || source.attachment_scope || "specific"),
+    attachmentCharacterId: String(source.attachmentCharacterId || source.attachment_character_id || ""),
+    attachedChatIds: normalizeStringArray(source.attachedChatIds || source.attached_chat_ids || []),
+    defaultEntrySettings: {
+      insertionPosition: String(defaultsSource.insertionPosition || defaultsSource.insertion_position || "after_system"),
+      scanDepth: Math.max(0, Number.parseInt(defaultsSource.scanDepth ?? defaultsSource.scan_depth ?? 10, 10) || 10),
+      insertionOrder: Math.max(0, Number.parseInt(defaultsSource.insertionOrder ?? defaultsSource.insertion_order ?? 100, 10) || 100),
+      enabled: defaultsSource.enabled !== false,
+      caseSensitive: Boolean(defaultsSource.caseSensitive ?? defaultsSource.case_sensitive ?? false),
+    },
+    createdAt: String(source.createdAt || source.created_at || item.createdAt || nowIso),
+    updatedAt: String(source.updatedAt || source.updated_at || item.updatedAt || nowIso),
     entries,
     data: {
       ...(source && typeof source === "object" ? source : {}),
@@ -1935,16 +2218,25 @@ function matchesKeyword(text, keyword, caseSensitive = false) {
 function resolveLorebookPromptContext({ messages = [], character = null } = {}) {
   const chat = getCurrentChat();
   const attachedIds = new Set(Array.isArray(chat?.lorebookIds) ? chat.lorebookIds : []);
-  const enabledLorebooks = state.lorebooks.filter((book) => attachedIds.has(book.id));
+  const enabledLorebooks = state.lorebooks.filter((book) => {
+    if (book?.enabled === false) return false;
+    if (attachedIds.has(book.id)) return true;
+    return lbv2IsLorebookAttachedToChat(book, chat);
+  });
   if (!enabledLorebooks.length) return { beforeText: "", afterText: "", entries: [] };
 
   const activeSettings = getActiveChatLorebookSettings();
-  const defaultScanDepth = activeSettings.scanDepth;
-  const defaultTokenBudget = activeSettings.tokenBudget;
-  const recursiveEnabled = activeSettings.recursiveScanning;
+  const effectiveScanDepth = enabledLorebooks.length
+    ? Math.min(...enabledLorebooks.map((book) => Math.max(1, Number.parseInt(book.scanDepth ?? activeSettings.scanDepth, 10) || activeSettings.scanDepth)))
+    : activeSettings.scanDepth;
+  const effectiveTokenBudget = enabledLorebooks.length
+    ? Math.min(...enabledLorebooks.map((book) => Math.max(64, Number.parseInt(book.tokenBudget ?? activeSettings.tokenBudget, 10) || activeSettings.tokenBudget)))
+    : activeSettings.tokenBudget;
+  const recursiveEnabled = enabledLorebooks.some((book) => book.recursiveScanning !== false) && activeSettings.recursiveScanning;
+  const maxRecursionDepth = Math.max(0, ...enabledLorebooks.map((book) => Number.parseInt(book?.maxRecursionDepth ?? 3, 10) || 3));
 
   const history = Array.isArray(messages)
-    ? messages.filter((msg) => msg && (msg.role === "user" || msg.role === "assistant")).slice(-defaultScanDepth)
+    ? messages.filter((msg) => msg && (msg.role === "user" || msg.role === "assistant")).slice(-effectiveScanDepth)
     : [];
   const characterGreeting = String(character?.greeting || character?.data?.first_mes || "").trim();
   const characterSummary = [
@@ -1963,28 +2255,59 @@ function resolveLorebookPromptContext({ messages = [], character = null } = {}) 
 
   const shouldActivateEntry = (entry, searchText) => {
     if (!entry || entry.enabled === false) return false;
-    if (entry.constant) return true;
+    if (entry.constant || entry.strategy === "constant") return true;
 
-    const primaryMatches = entry.keys.some((key) => matchesKeyword(searchText, key, entry.caseSensitive));
-    if (!primaryMatches) return false;
+    if (!entry.keys.length && entry.strategy === "normal") return false;
+
+    const matcher = (text, key) => {
+      if (entry.useRegex) {
+        try {
+          const regex = new RegExp(String(key || ""), entry.caseSensitive ? "g" : "gi");
+          return regex.test(String(text || ""));
+        } catch {
+          return false;
+        }
+      }
+
+      if (entry.matchWholeWords) {
+        return matchesKeyword(text, key, entry.caseSensitive);
+      }
+
+      const source = String(text || "");
+      const needle = String(key || "").trim();
+      if (!needle) return false;
+      if (entry.caseSensitive) return source.includes(needle);
+      return source.toLowerCase().includes(needle.toLowerCase());
+    };
+
+    const primaryMatchesCount = entry.keys.filter((key) => matcher(searchText, key)).length;
+    const secondaryMatchesCount = entry.secondaryKeys.filter((key) => matcher(searchText, key)).length;
+
+    const anyPrimary = primaryMatchesCount > 0;
+    const allPrimary = entry.keys.length > 0 && primaryMatchesCount === entry.keys.length;
+    const anySecondary = secondaryMatchesCount > 0;
+
+    const logic = String(entry.activationLogic || "ANY").toUpperCase();
+    if (logic === "ALL") return allPrimary;
+    if (logic === "AND_ANY_SECONDARY") return anyPrimary && anySecondary;
+    if (logic === "NOT") return !anyPrimary;
 
     if (!entry.selective || !entry.secondaryKeys.length) {
-      return true;
+      return anyPrimary;
     }
 
-    const secondaryMatches = entry.secondaryKeys.some((key) => matchesKeyword(searchText, key, entry.caseSensitive));
-
-    if (entry.selectiveLogic === "NOT") return !secondaryMatches;
-    if (entry.selectiveLogic === "OR") return primaryMatches || secondaryMatches;
-    return primaryMatches && secondaryMatches;
+    if (entry.selectiveLogic === "NOT") return !anySecondary && anyPrimary;
+    if (entry.selectiveLogic === "OR") return anyPrimary || anySecondary;
+    return anyPrimary && anySecondary;
   };
 
-  const runPass = () => {
+  const runPass = ({ recursivePass = false } = {}) => {
     let added = false;
     for (const lorebook of enabledLorebooks) {
       const entries = Array.isArray(lorebook.entries) ? lorebook.entries : [];
       for (const entry of entries) {
         if (selectedIds.has(entry.id)) continue;
+        if (recursivePass && entry.excludeFromRecursion) continue;
         if (!shouldActivateEntry(entry, searchableText)) continue;
 
         const chanceRoll = Math.random() * 100;
@@ -1995,19 +2318,22 @@ function resolveLorebookPromptContext({ messages = [], character = null } = {}) 
           ...entry,
           _lorebookId: lorebook.id,
           _lorebookName: lorebook.name,
-          _effectiveTokenBudget: Math.min(defaultTokenBudget, lorebook.tokenBudget || defaultTokenBudget),
+          _effectiveTokenBudget: Math.min(effectiveTokenBudget, lorebook.tokenBudget || effectiveTokenBudget),
         });
-        searchableText += `\n${entry.content}`;
+        if (!entry.preventRecursion) {
+          searchableText += `\n${entry.content}`;
+        }
         added = true;
       }
     }
     return added;
   };
 
-  runPass();
+  runPass({ recursivePass: false });
   if (recursiveEnabled) {
-    for (let pass = 0; pass < 8; pass += 1) {
-      if (!runPass()) break;
+    const recursionCap = Math.min(12, Math.max(0, maxRecursionDepth));
+    for (let pass = 0; pass < recursionCap; pass += 1) {
+      if (!runPass({ recursivePass: true })) break;
     }
   }
 
@@ -2023,26 +2349,83 @@ function resolveLorebookPromptContext({ messages = [], character = null } = {}) 
 
   const kept = [];
   let usedTokens = 0;
-  const globalBudget = defaultTokenBudget;
+  const globalBudget = effectiveTokenBudget;
   for (const entry of sorted) {
     const text = applyMacrosToText(String(entry.content || "").trim(), character);
     if (!text) continue;
     const estimated = estimateTokenCount(text);
+
+    const perEntryBudget = Number(entry.tokenBudget || 0) > 0
+      ? Number(entry.tokenBudget)
+      : globalBudget;
+
+    if (estimated > perEntryBudget) continue;
     if (usedTokens + estimated > globalBudget) continue;
+
     kept.push({ ...entry, _rendered: text, _estimatedTokens: estimated });
     usedTokens += estimated;
   }
 
   kept.sort((a, b) => Number(a.insertionOrder || 0) - Number(b.insertionOrder || 0));
-  const beforeText = kept.map((entry) => entry._rendered).join("\n\n").trim();
+
+  const groupedByName = new Map();
+  const finalEntries = [];
+
+  for (const entry of kept) {
+    const groupName = String(entry.group || "").trim();
+    if (!groupName) {
+      finalEntries.push(entry);
+      continue;
+    }
+
+    if (!groupedByName.has(groupName)) groupedByName.set(groupName, []);
+    groupedByName.get(groupName).push(entry);
+  }
+
+  groupedByName.forEach((items) => {
+    if (!items.length) return;
+    if (items.length === 1) {
+      finalEntries.push(items[0]);
+      return;
+    }
+
+    const totalWeight = items.reduce((sum, item) => sum + Math.max(1, Number(item.groupWeight || 100)), 0);
+    let roll = Math.random() * totalWeight;
+    let picked = items[0];
+    for (const item of items) {
+      roll -= Math.max(1, Number(item.groupWeight || 100));
+      if (roll <= 0) {
+        picked = item;
+        break;
+      }
+    }
+    finalEntries.push(picked);
+  });
+
+  finalEntries.sort((a, b) => Number(a.insertionOrder || 0) - Number(b.insertionOrder || 0));
+
+  const beforeEntries = [];
+  const afterEntries = [];
+
+  finalEntries.forEach((entry) => {
+    const position = String(entry.insertionPosition || "after_system");
+    if (["after_system", "after_author_note", "bottom_chat"].includes(position)) {
+      afterEntries.push(entry);
+    } else {
+      beforeEntries.push(entry);
+    }
+  });
+
+  const beforeText = beforeEntries.map((entry) => entry._rendered).join("\n\n").trim();
+  const afterText = afterEntries.map((entry) => entry._rendered).join("\n\n").trim();
 
   return {
     beforeText,
-    afterText: "",
-    entries: kept,
-    estimatedTokens: usedTokens,
-    scanDepthUsed: defaultScanDepth,
-    tokenBudgetUsed: defaultTokenBudget,
+    afterText,
+    entries: finalEntries,
+    estimatedTokens: finalEntries.reduce((sum, entry) => sum + Number(entry._estimatedTokens || 0), 0),
+    scanDepthUsed: effectiveScanDepth,
+    tokenBudgetUsed: effectiveTokenBudget,
   };
 }
 
@@ -2098,6 +2481,15 @@ function setActiveLibraryPanel(panelId = "libraryLorebooksPanel") {
   els.libraryCategoryChips?.forEach((chip) => {
     chip.classList.toggle("active", chip.dataset.libraryPanel === target);
   });
+
+  if (target === "libraryLorebooksPanel" && LOREBOOK_V2_ENABLED) {
+    lbv2SetLevel(1);
+    lbv2State.activeLorebookId = "";
+    lbv2State.activeEntryId = "";
+    lbv2State.bulkMode = false;
+    lbv2State.bulkSelectedEntryIds = new Set();
+    renderLorebooksV2();
+  }
 }
 
 function parseCommaSeparatedList(value = "") {
@@ -2105,6 +2497,57 @@ function parseCommaSeparatedList(value = "") {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function formatDateShort(dateLike) {
+  const date = new Date(dateLike || Date.now());
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatRelativeTime(dateLike) {
+  const date = new Date(dateLike || Date.now());
+  if (Number.isNaN(date.getTime())) return "just now";
+  const deltaMs = Date.now() - date.getTime();
+  const abs = Math.abs(deltaMs);
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (abs < minute) return "just now";
+  if (abs < hour) {
+    const n = Math.max(1, Math.round(abs / minute));
+    return `${n} min${n === 1 ? "" : "s"} ago`;
+  }
+  if (abs < day) {
+    const n = Math.max(1, Math.round(abs / hour));
+    return `${n} hour${n === 1 ? "" : "s"} ago`;
+  }
+  const n = Math.max(1, Math.round(abs / day));
+  return `${n} day${n === 1 ? "" : "s"} ago`;
+}
+
+function countLorebookTokens(book) {
+  const entries = Array.isArray(book?.entries) ? book.entries : [];
+  return entries.reduce((sum, entry) => sum + estimateTokenCount(String(entry?.content || "")), 0);
+}
+
+function withLorebookTimestamps(book, fallback = {}) {
+  const nowIso = new Date().toISOString();
+  return {
+    ...book,
+    createdAt: String(book?.createdAt || book?.created_at || fallback.createdAt || nowIso),
+    updatedAt: String(book?.updatedAt || book?.updated_at || fallback.updatedAt || nowIso),
+  };
+}
+
+function withEntryTimestamps(entry, fallback = {}) {
+  const nowIso = new Date().toISOString();
+  return {
+    ...entry,
+    createdAt: String(entry?.createdAt || entry?.created_at || fallback.createdAt || nowIso),
+    updatedAt: String(entry?.updatedAt || entry?.updated_at || fallback.updatedAt || nowIso),
+  };
 }
 
 function openLorebookEntryEditor(index = null) {
@@ -2720,26 +3163,55 @@ function saveLorebookFromForm() {
 
   const editingId = els.lorebookEditorView?.dataset?.editingId || "";
   const existing = editingId ? state.lorebooks.find((book) => book.id === editingId) : null;
+  const nowIso = new Date().toISOString();
 
   const normalized = normalizeLorebookRecord({
     ...(existing || {}),
     id: editingId || existing?.id || crypto.randomUUID(),
     name,
     description,
+    color: existing?.color || LOREBOOK_V2_COLORS[0],
+    createdAt: existing?.createdAt || nowIso,
+    updatedAt: nowIso,
     entries: lorebookEntryDraft.map((entry, index) => ({
       id: entry.id || crypto.randomUUID(),
       title: entry.title,
+      comment: entry.comment || "",
       keys: Array.isArray(entry.keys) ? entry.keys : [],
       secondary_keys: Array.isArray(entry.secondaryKeys) ? entry.secondaryKeys : [],
+      activation_logic: entry.activationLogic || "ANY",
+      match_whole_words: Boolean(entry.matchWholeWords),
+      use_regex: Boolean(entry.useRegex),
       content: String(entry.content || "").trim(),
       insertion_order: index,
+      insertion_position: entry.insertionPosition || "after_system",
+      insertion_depth: Number.isFinite(Number(entry.insertionDepth)) ? Number(entry.insertionDepth) : 4,
+      role: entry.role || "system",
       priority: Number.isFinite(Number(entry.priority)) ? Number(entry.priority) : 100,
       case_sensitive: Boolean(entry.caseSensitive),
       selective: Boolean(entry.selective),
       selective_logic: entry.selectiveLogic || "AND",
+      scan_depth: Number.isFinite(Number(entry.scanDepth)) ? Number(entry.scanDepth) : 0,
+      token_budget: Number.isFinite(Number(entry.tokenBudget)) ? Number(entry.tokenBudget) : 0,
       constant: Boolean(entry.constant),
+      strategy: entry.strategy || (entry.constant ? "constant" : "normal"),
+      prevent_recursion: Boolean(entry.preventRecursion),
+      exclude_from_recursion: Boolean(entry.excludeFromRecursion),
       probability: Number.isFinite(Number(entry.probability)) ? Number(entry.probability) : 100,
+      group: entry.group || "",
+      group_weight: Number.isFinite(Number(entry.groupWeight)) ? Number(entry.groupWeight) : 100,
+      category: entry.category || "",
+      tags: Array.isArray(entry.tags) ? entry.tags : [],
+      automation_id: entry.automationId || "",
+      linked_entries: Array.isArray(entry.linkedEntries) ? entry.linkedEntries : [],
+      sticky: Number.isFinite(Number(entry.sticky)) ? Number(entry.sticky) : 0,
+      cooldown: Number.isFinite(Number(entry.cooldown)) ? Number(entry.cooldown) : 0,
+      delay: Number.isFinite(Number(entry.delay)) ? Number(entry.delay) : 0,
+      turn_start: Number.isFinite(Number(entry.turnStart)) ? Number(entry.turnStart) : 0,
+      turn_end: Number.isFinite(Number(entry.turnEnd)) ? Number(entry.turnEnd) : null,
       enabled: entry.enabled !== false,
+      created_at: entry.createdAt || nowIso,
+      updated_at: nowIso,
     })),
   });
 
@@ -2765,6 +3237,8 @@ async function importLorebooks(event) {
   const files = Array.from(event?.target?.files || []);
   if (!files.length) return;
 
+  const activeChat = getCurrentChat();
+
   try {
     for (const file of files) {
       const text = await file.text();
@@ -2776,13 +3250,30 @@ async function importLorebooks(event) {
           : [parsed];
 
       items.forEach((item) => {
+        const nowIso = new Date().toISOString();
         const normalized = normalizeLorebookRecord({
           ...item,
           name: item?.name || item?.title || file.name.replace(/\.json$/i, "") || "Imported lorebook",
+          color: item?.color || LOREBOOK_V2_COLORS[0],
+          createdAt: item?.createdAt || nowIso,
+          updatedAt: nowIso,
+          attachmentScope: item?.attachmentScope || "specific",
+          attachedChatIds: activeChat?.id
+            ? [activeChat.id]
+            : normalizeStringArray(item?.attachedChatIds || item?.attached_chat_ids || []),
         });
         state.lorebooks.unshift(normalized);
       });
     }
+
+    if (activeChat?.id) {
+      const attachIds = (Array.isArray(state.lorebooks) ? state.lorebooks : [])
+        .filter((book) => Array.isArray(book.attachedChatIds) && book.attachedChatIds.includes(activeChat.id))
+        .map((book) => book.id);
+      activeChat.lorebookIds = [...new Set([...(activeChat.lorebookIds || []), ...attachIds])];
+      syncCurrentChatFromState();
+    }
+
     persistState();
     renderLorebooks();
     renderDrawerLorebooks();
@@ -2816,6 +3307,14 @@ function removeLorebook(lorebookId) {
     if (!Array.isArray(chat.lorebookIds)) return;
     chat.lorebookIds = chat.lorebookIds.filter((id) => id !== lorebookId);
   });
+
+  if (lbv2State.activeLorebookId === lorebookId) {
+    lbv2State.activeLorebookId = "";
+    lbv2State.activeEntryId = "";
+    lbv2State.bulkSelectedEntryIds = new Set();
+    lbv2State.bulkMode = false;
+  }
+
   persistState();
   renderLorebooks();
   renderDrawerLorebooks();
@@ -2823,10 +3322,2707 @@ function removeLorebook(lorebookId) {
   showToast("Lorebook deleted", "success");
 }
 
-function renderLorebooks() {
-  if (!els.lorebookList) return;
+function lbv2GetActiveLorebook() {
+  if (!lbv2State.activeLorebookId) return null;
+  return state.lorebooks.find((book) => book.id === lbv2State.activeLorebookId) || null;
+}
 
+function lbv2GetActiveEntry() {
+  const lorebook = lbv2GetActiveLorebook();
+  if (!lorebook || !lbv2State.activeEntryId) return null;
+  return (Array.isArray(lorebook.entries) ? lorebook.entries : []).find((entry) => entry.id === lbv2State.activeEntryId) || null;
+}
+
+function lbv2GetEntryById(lorebook, entryId) {
+  if (!lorebook || !Array.isArray(lorebook.entries) || !entryId) return null;
+  return lorebook.entries.find((entry) => entry.id === entryId) || null;
+}
+
+function lbv2IsLorebookAttachedToChat(book, chat = null) {
+  if (!book) return false;
+  const activeChat = chat || getCurrentChat();
+  if (!activeChat?.id) return false;
+
+  const scope = String(book.attachmentScope || "specific");
+  if (scope === "global") return true;
+  if (scope === "character") {
+    return Boolean(activeChat.characterId && book.attachmentCharacterId && activeChat.characterId === book.attachmentCharacterId);
+  }
+
+  const attachedIds = Array.isArray(book.attachedChatIds) ? book.attachedChatIds : [];
+  if (attachedIds.length) return attachedIds.includes(activeChat.id);
+
+  return Array.isArray(activeChat.lorebookIds) && activeChat.lorebookIds.includes(book.id);
+}
+
+function lbv2ToggleLorebookAttachment(bookId) {
+  const chat = getCurrentChat();
+  if (!chat) {
+    showToast("Open a chat first to attach lorebooks", "error");
+    return;
+  }
+
+  const book = state.lorebooks.find((item) => item.id === bookId);
+  if (!book) return;
+
+  if (book.attachmentScope !== "specific") {
+    const previouslyAttachedIds = (state.chats || [])
+      .filter((item) => lbv2IsLorebookAttachedToChat(book, item))
+      .map((item) => item.id);
+    book.attachmentScope = "specific";
+    book.attachedChatIds = [...new Set(previouslyAttachedIds)];
+  }
+
+  if (!Array.isArray(chat.lorebookIds)) chat.lorebookIds = [];
+  if (!Array.isArray(book.attachedChatIds)) book.attachedChatIds = [];
+
+  const set = new Set(chat.lorebookIds.map((id) => String(id || "")).filter(Boolean));
+  const chatSet = new Set(book.attachedChatIds.map((id) => String(id || "")).filter(Boolean));
+
+  if (set.has(bookId)) {
+    set.delete(bookId);
+    chatSet.delete(chat.id);
+  } else {
+    set.add(bookId);
+    chatSet.add(chat.id);
+  }
+
+  chat.lorebookIds = [...set];
+  book.attachedChatIds = [...chatSet];
+
+  syncCurrentChatFromState();
+  persistState();
+  renderDrawerLorebooks();
+  renderLorebooks();
+}
+
+function lbv2SetLevel(level = 1) {
+  lbv2State.level = Math.min(3, Math.max(1, Number.parseInt(level, 10) || 1));
+  lbv2SyncStack();
+}
+
+function lbv2NavigateTo(level = 1) {
+  const nextLevel = Math.min(3, Math.max(1, Number.parseInt(level, 10) || 1));
+  lbv2State.level = nextLevel;
+  if (els.lbv2Stack) {
+    els.lbv2Stack.dataset.level = String(nextLevel);
+    els.lbv2Stack.dataset.anim = "slide";
+  }
+  lbv2SyncStack();
+}
+
+function lbv2NavigateBack() {
+  if (lbv2State.level <= 1) {
+    switchView("homeView");
+    return;
+  }
+
+  const target = lbv2State.level - 1;
+  lbv2NavigateTo(target);
+  if (target === 1) {
+    lbv2State.activeLorebookId = "";
+    lbv2State.activeEntryId = "";
+    lbv2State.bulkMode = false;
+    lbv2State.bulkSelectedEntryIds = new Set();
+  }
+  if (target === 2) {
+    lbv2State.activeEntryId = "";
+  }
+}
+
+function lbv2SyncStack() {
+  const levels = [
+    { node: els.lbv2Level1, level: 1 },
+    { node: els.lbv2Level2, level: 2 },
+    { node: els.lbv2Level3, level: 3 },
+  ];
+
+  levels.forEach(({ node, level }) => {
+    if (!node) return;
+    node.classList.toggle("active", lbv2State.level === level);
+    node.classList.toggle("is-left", level < lbv2State.level);
+  });
+
+  if (els.lbv2EntriesTopbar && els.lbv2BulkTopbar) {
+    els.lbv2EntriesTopbar.classList.toggle("hidden", lbv2State.bulkMode);
+    els.lbv2BulkTopbar.classList.toggle("hidden", !lbv2State.bulkMode);
+  }
+
+  if (els.lbv2BulkTitle) {
+    const count = lbv2State.bulkSelectedEntryIds?.size || 0;
+    els.lbv2BulkTitle.textContent = `${count} selected`;
+  }
+}
+
+function lbv2OpenSheet({ title = "", content = null } = {}) {
+  if (!els.lbv2SheetBackdrop || !els.lbv2SheetContent) return;
+  if (els.lbv2SheetTitle) els.lbv2SheetTitle.textContent = title;
+  els.lbv2SheetContent.innerHTML = "";
+  if (content instanceof Node) {
+    els.lbv2SheetContent.appendChild(content);
+  } else if (typeof content === "string") {
+    els.lbv2SheetContent.innerHTML = content;
+  }
+  els.lbv2SheetBackdrop.classList.remove("hidden");
+  els.lbv2SheetBackdrop.setAttribute("aria-hidden", "false");
+}
+
+function lbv2CloseSheet() {
+  if (!els.lbv2SheetBackdrop || !els.lbv2SheetContent) return;
+  els.lbv2SheetBackdrop.classList.add("hidden");
+  els.lbv2SheetBackdrop.setAttribute("aria-hidden", "true");
+  if (els.lbv2SheetTitle) els.lbv2SheetTitle.textContent = "";
+  els.lbv2SheetContent.innerHTML = "";
+}
+
+function lbv2OpenDialog({ title = "", body = "", confirmLabel = "Delete", danger = true, onConfirm = null } = {}) {
+  if (!els.lbv2DialogBackdrop) return;
+  if (els.lbv2DialogTitle) els.lbv2DialogTitle.textContent = title;
+  if (els.lbv2DialogBody) els.lbv2DialogBody.textContent = body;
+  if (els.lbv2DialogConfirmBtn) {
+    els.lbv2DialogConfirmBtn.textContent = confirmLabel;
+    els.lbv2DialogConfirmBtn.classList.toggle("lbv2-danger-btn", danger);
+    els.lbv2DialogConfirmBtn.classList.toggle("lbv2-secondary-btn", !danger);
+  }
+  lbv2State.dialog.onConfirm = typeof onConfirm === "function" ? onConfirm : null;
+  els.lbv2DialogBackdrop.classList.remove("hidden");
+  els.lbv2DialogBackdrop.setAttribute("aria-hidden", "false");
+}
+
+function lbv2CloseDialog() {
+  if (!els.lbv2DialogBackdrop) return;
+  els.lbv2DialogBackdrop.classList.add("hidden");
+  els.lbv2DialogBackdrop.setAttribute("aria-hidden", "true");
+  lbv2State.dialog.onConfirm = null;
+}
+
+function lbv2CreateSheetButton({ label, sublabel = "", className = "", onClick }) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `lbv2-sheet-item ${className}`.trim();
+
+  const left = document.createElement("span");
+  left.textContent = label;
+  button.appendChild(left);
+
+  if (sublabel) {
+    const small = document.createElement("small");
+    small.className = "lbv2-sheet-sub";
+    small.textContent = sublabel;
+    button.appendChild(small);
+  }
+
+  button.addEventListener("click", () => {
+    if (typeof onClick === "function") onClick();
+  });
+
+  return button;
+}
+
+function lbv2ShowSaveIndicator(text = "Saved") {
+  if (!els.lbv2SaveIndicator) return;
+  if (lbv2State.saveIndicatorTimer) clearTimeout(lbv2State.saveIndicatorTimer);
+  els.lbv2SaveIndicator.textContent = text;
+  els.lbv2SaveIndicator.classList.add("show");
+  lbv2State.saveIndicatorTimer = setTimeout(() => {
+    els.lbv2SaveIndicator?.classList.remove("show");
+  }, 1500);
+}
+
+function lbv2UpdateSwitchAria() {
+  if (!els.lbv2Panel) return;
+  const switchInputs = els.lbv2Panel.querySelectorAll('input[role="switch"]');
+  switchInputs.forEach((input) => {
+    input.setAttribute("aria-checked", input.checked ? "true" : "false");
+  });
+}
+
+function lbv2ApplyEntrySort(entries = []) {
+  const list = Array.isArray(entries) ? entries.slice() : [];
+  if (lbv2State.entrySortBy === LOREBOOK_V2_SORT_OPTIONS.ALPHABETICAL) {
+    list.sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
+  } else if (lbv2State.entrySortBy === LOREBOOK_V2_SORT_OPTIONS.PRIORITY) {
+    list.sort((a, b) => Number(b.priority || 0) - Number(a.priority || 0));
+  } else if (lbv2State.entrySortBy === LOREBOOK_V2_SORT_OPTIONS.TOKEN_COUNT) {
+    list.sort((a, b) => estimateTokenCount(b.content || "") - estimateTokenCount(a.content || ""));
+  } else if (lbv2State.entrySortBy === LOREBOOK_V2_SORT_OPTIONS.RECENTLY_MODIFIED) {
+    list.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+  } else {
+    list.sort((a, b) => Number(a.insertionOrder || 0) - Number(b.insertionOrder || 0));
+  }
+  return list;
+}
+
+function lbv2ApplyLorebookSort(lorebooks = []) {
+  const list = Array.isArray(lorebooks) ? lorebooks.slice() : [];
+  if (lbv2State.lorebookSortBy === LOREBOOK_V2_SORT_OPTIONS.ALPHABETICAL) {
+    list.sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+  } else if (lbv2State.lorebookSortBy === LOREBOOK_V2_SORT_OPTIONS.DATE_CREATED) {
+    list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  } else if (lbv2State.lorebookSortBy === LOREBOOK_V2_SORT_OPTIONS.ENTRY_COUNT) {
+    list.sort((a, b) => (b.entries?.length || 0) - (a.entries?.length || 0));
+  } else {
+    list.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+  }
+  return list;
+}
+
+function lbv2CreateEmptyEntry(lorebook) {
+  const defaultsEntry = lorebook?.defaultEntrySettings || {};
+  const nowIso = new Date().toISOString();
+  return normalizeLorebookEntry({
+    id: crypto.randomUUID(),
+    title: "Untitled Entry",
+    keys: [],
+    secondary_keys: [],
+    activation_logic: "ANY",
+    content: "",
+    insertion_order: Number.isFinite(Number(defaultsEntry.insertionOrder)) ? Number(defaultsEntry.insertionOrder) : 100,
+    insertion_position: defaultsEntry.insertionPosition || "after_system",
+    scan_depth: Number.isFinite(Number(defaultsEntry.scanDepth)) ? Number(defaultsEntry.scanDepth) : 10,
+    token_budget: 0,
+    priority: Number.isFinite(Number(defaultsEntry.insertionOrder)) ? Number(defaultsEntry.insertionOrder) : 100,
+    case_sensitive: Boolean(defaultsEntry.caseSensitive),
+    enabled: defaultsEntry.enabled !== false,
+    strategy: "normal",
+    created_at: nowIso,
+    updated_at: nowIso,
+  });
+}
+
+function lbv2PersistLorebook(lorebook, { savedText = "Saved" } = {}) {
+  if (!lorebook) return;
+  lorebook.updatedAt = new Date().toISOString();
+  const index = state.lorebooks.findIndex((item) => item.id === lorebook.id);
+  if (index >= 0) {
+    state.lorebooks[index] = normalizeLorebookRecord(lorebook);
+  } else {
+    state.lorebooks.unshift(normalizeLorebookRecord(lorebook));
+  }
+
+  const normalizedBook = state.lorebooks.find((item) => item.id === lorebook.id);
+  if (normalizedBook) {
+    const chats = Array.isArray(state.chats) ? state.chats : [];
+    chats.forEach((chat) => {
+      if (!chat?.id) return;
+      if (!Array.isArray(chat.lorebookIds)) chat.lorebookIds = [];
+      const set = new Set(chat.lorebookIds.map((id) => String(id || "")).filter(Boolean));
+
+      const attached = lbv2IsLorebookAttachedToChat(normalizedBook, chat);
+      if (attached) set.add(normalizedBook.id);
+      else set.delete(normalizedBook.id);
+
+      chat.lorebookIds = [...set];
+    });
+  }
+
+  persistState();
+  renderDrawerLorebooks();
+  lbv2ShowSaveIndicator(savedText);
+}
+
+function lbv2ScheduleAutosave() {
+  if (lbv2State.suppressEditorEvents) return;
+  if (lbv2State.level !== 3) return;
+  if (lbv2State.autosaveTimer) clearTimeout(lbv2State.autosaveTimer);
+  lbv2State.autosaveTimer = setTimeout(() => {
+    lbv2SaveEntryFromEditor({ silent: true });
+  }, 500);
+}
+
+function initLorebookV2() {
+  if (!LOREBOOK_V2_ENABLED || !els.lbv2Panel || !els.lbv2LorebookList) return;
+
+  lbv2State.level = 1;
+  lbv2State.activeLorebookId = "";
+  lbv2State.activeEntryId = "";
+  lbv2State.bulkMode = false;
+  lbv2State.bulkSelectedEntryIds = new Set();
+  lbv2SyncStack();
+  lbv2UpdateSwitchAria();
+  renderLorebooksV2();
+}
+
+function bindLorebookV2Events() {
+  if (!LOREBOOK_V2_ENABLED || !els.lbv2Panel || !els.lbv2Stack) return;
+
+  const goBack = () => lbv2NavigateBack();
+  els.lbv2BackLibraryBtn?.addEventListener("click", goBack);
+  els.lbv2EntriesBackBtn?.addEventListener("click", goBack);
+  els.lbv2EditorBackBtn?.addEventListener("click", goBack);
+
+  const openCreate = () => lbv2OpenCreateLorebookSheet();
+  els.lbv2CreateLorebookTopBtn?.addEventListener("click", openCreate);
+  els.lbv2EmptyCreateBtn?.addEventListener("click", openCreate);
+  els.lbv2LorebookFab?.addEventListener("click", openCreate);
+
+  els.lbv2LorebookSearchInput?.addEventListener("input", () => {
+    lbv2State.lorebookSearchQuery = String(els.lbv2LorebookSearchInput.value || "");
+    renderLorebooksV2();
+  });
+
+  els.lbv2EntrySearchInput?.addEventListener("input", () => {
+    lbv2State.entrySearchQuery = String(els.lbv2EntrySearchInput.value || "");
+    lbv2RenderEntryList();
+  });
+
+  els.lbv2LorebookOverflowBtn?.addEventListener("click", lbv2OpenLorebookOverflowSheet);
+  els.lbv2EntriesOverflowBtn?.addEventListener("click", lbv2OpenEntriesOverflowSheet);
+  els.lbv2EditorOverflowBtn?.addEventListener("click", lbv2OpenEditorOverflowSheet);
+
+  els.lbv2LorebookSettingsBtn?.addEventListener("click", lbv2OpenSettingsModal);
+  els.lbv2SettingsBackBtn?.addEventListener("click", lbv2CloseSettingsModal);
+
+  els.lbv2EntryNewBtn?.addEventListener("click", lbv2CreateEntryAndOpenEditor);
+  els.lbv2EmptyEntryCreateBtn?.addEventListener("click", lbv2CreateEntryAndOpenEditor);
+
+  els.lbv2BulkCancelBtn?.addEventListener("click", () => {
+    lbv2State.bulkMode = false;
+    lbv2State.bulkSelectedEntryIds = new Set();
+    lbv2SyncStack();
+    lbv2RenderEntryList();
+  });
+
+  els.lbv2BulkActionsBtn?.addEventListener("click", lbv2OpenBulkActionsSheet);
+
+  els.lbv2SheetBackdrop?.addEventListener("click", (event) => {
+    if (event.target === els.lbv2SheetBackdrop) lbv2CloseSheet();
+  });
+
+  els.lbv2DialogBackdrop?.addEventListener("click", (event) => {
+    if (event.target === els.lbv2DialogBackdrop) lbv2CloseDialog();
+  });
+
+  els.lbv2DialogCancelBtn?.addEventListener("click", lbv2CloseDialog);
+  els.lbv2DialogConfirmBtn?.addEventListener("click", () => {
+    const fn = lbv2State.dialog.onConfirm;
+    lbv2CloseDialog();
+    if (typeof fn === "function") fn();
+  });
+
+  els.lbv2EntryImportInput?.addEventListener("change", lbv2ImportEntriesIntoActiveLorebook);
+
+  els.lbv2EntryContentInput?.addEventListener("input", () => {
+    lbv2UpdateEditorDerivedUi();
+    lbv2ScheduleAutosave();
+  });
+  els.lbv2EntryNameInput?.addEventListener("input", lbv2ScheduleAutosave);
+  els.lbv2EntryCommentInput?.addEventListener("input", lbv2ScheduleAutosave);
+  els.lbv2PrimaryKeysInput?.addEventListener("input", () => {
+    lbv2UpdateEditorDerivedUi();
+    lbv2ScheduleAutosave();
+  });
+  els.lbv2SecondaryKeysInput?.addEventListener("input", lbv2ScheduleAutosave);
+
+  [
+    els.lbv2ActivationAnyInput,
+    els.lbv2ActivationAllInput,
+    els.lbv2ActivationAndOrInput,
+    els.lbv2ActivationNotInput,
+    els.lbv2CaseSensitiveInput,
+    els.lbv2WholeWordsInput,
+    els.lbv2RegexInput,
+    els.lbv2ScanDepthInput,
+    els.lbv2PerEntryTokenBudgetInput,
+    els.lbv2InsertionPositionInput,
+    els.lbv2InsertionDepthInput,
+    els.lbv2PriorityInput,
+    els.lbv2EnabledInput,
+    els.lbv2PreventRecursionInput,
+    els.lbv2ExcludeFromRecursionInput,
+    els.lbv2ActivationProbabilitySlider,
+    els.lbv2ActivationProbabilityInput,
+    els.lbv2GroupInput,
+    els.lbv2GroupWeightInput,
+    els.lbv2CategoryInput,
+    els.lbv2AutomationIdInput,
+    els.lbv2StickyInput,
+    els.lbv2CooldownInput,
+    els.lbv2DelayInput,
+    els.lbv2TurnStartInput,
+    els.lbv2TurnEndInput,
+  ].forEach((node) => {
+    node?.addEventListener("change", () => {
+      lbv2UpdateEditorDerivedUi();
+      lbv2ScheduleAutosave();
+      lbv2UpdateSwitchAria();
+    });
+    node?.addEventListener("input", () => {
+      lbv2UpdateEditorDerivedUi();
+      lbv2ScheduleAutosave();
+    });
+  });
+
+  const roleRadios = els.lbv2Panel.querySelectorAll('input[name="lbv2MessageRole"]');
+  roleRadios.forEach((radio) => radio.addEventListener("change", lbv2ScheduleAutosave));
+
+  const strategyRadios = els.lbv2Panel.querySelectorAll('input[name="lbv2Strategy"]');
+  strategyRadios.forEach((radio) => radio.addEventListener("change", () => {
+    lbv2UpdateEditorDerivedUi();
+    lbv2ScheduleAutosave();
+  }));
+
+  els.lbv2InsertionPositionBtn?.addEventListener("click", () => lbv2OpenPickerSheet("insertion-position"));
+  els.lbv2CategoryPickerBtn?.addEventListener("click", () => lbv2OpenPickerSheet("category"));
+  els.lbv2SettingsDefaultPositionBtn?.addEventListener("click", () => lbv2OpenPickerSheet("default-position"));
+  els.lbv2LinkEntryBtn?.addEventListener("click", lbv2OpenLinkEntryPicker);
+
+  els.lbv2TagInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === ",") {
+      event.preventDefault();
+      lbv2AddTagFromInput();
+    }
+  });
+  els.lbv2TagInput?.addEventListener("blur", lbv2AddTagFromInput);
+  els.lbv2TagInput?.addEventListener("input", lbv2RenderTagSuggestions);
+
+  els.lbv2ActivationProbabilitySlider?.addEventListener("input", () => {
+    if (!els.lbv2ActivationProbabilityInput) return;
+    els.lbv2ActivationProbabilityInput.value = els.lbv2ActivationProbabilitySlider.value;
+  });
+  els.lbv2ActivationProbabilityInput?.addEventListener("input", () => {
+    if (!els.lbv2ActivationProbabilitySlider) return;
+    const value = Math.min(100, Math.max(0, Number.parseInt(els.lbv2ActivationProbabilityInput.value || "100", 10) || 100));
+    els.lbv2ActivationProbabilityInput.value = String(value);
+    els.lbv2ActivationProbabilitySlider.value = String(value);
+  });
+
+  els.lbv2RegexInput?.addEventListener("change", () => {
+    if (els.lbv2RegexHelper) {
+      els.lbv2RegexHelper.classList.toggle("hidden", !els.lbv2RegexInput.checked);
+    }
+  });
+
+  els.lbv2SettingsRecursiveInput?.addEventListener("change", () => {
+    els.lbv2SettingsRecursionDepthField?.classList.toggle("hidden", !els.lbv2SettingsRecursiveInput.checked);
+    lbv2SaveSettingsModal();
+  });
+
+  els.lbv2SettingsNameInput?.addEventListener("input", lbv2SaveSettingsModal);
+  els.lbv2SettingsDescriptionInput?.addEventListener("input", lbv2SaveSettingsModal);
+  els.lbv2SettingsTokenBudgetInput?.addEventListener("change", lbv2SaveSettingsModal);
+  els.lbv2SettingsDefaultScanDepthInput?.addEventListener("change", lbv2SaveSettingsModal);
+  els.lbv2SettingsDefaultOrderInput?.addEventListener("change", lbv2SaveSettingsModal);
+  els.lbv2SettingsDefaultEnabledInput?.addEventListener("change", lbv2SaveSettingsModal);
+  els.lbv2SettingsDefaultCaseInput?.addEventListener("change", lbv2SaveSettingsModal);
+  els.lbv2SettingsRecursionDepthInput?.addEventListener("change", lbv2SaveSettingsModal);
+
+  els.lbv2AttachmentCharacterSelect?.addEventListener("change", lbv2SaveSettingsModal);
+  const attachmentScopeRadios = els.lbv2Panel.querySelectorAll('input[name="lbv2AttachmentScope"]');
+  attachmentScopeRadios.forEach((radio) => {
+    radio.addEventListener("change", () => {
+      lbv2UpdateAttachmentVisibility();
+      lbv2SaveSettingsModal();
+    });
+  });
+
+  els.lbv2AttachChatBtn?.addEventListener("click", lbv2OpenAttachChatPicker);
+
+  els.lbv2ExportJsonBtn?.addEventListener("click", () => {
+    const lorebook = lbv2GetActiveLorebook();
+    if (!lorebook) return;
+    exportLorebook(lorebook.id);
+    lbv2CloseSheet();
+  });
+  els.lbv2ExportStBtn?.addEventListener("click", lbv2ExportActiveLorebookAsSillyTavern);
+  els.lbv2ImportEntriesBtn?.addEventListener("click", () => els.lbv2EntryImportInput?.click());
+
+  els.lbv2DisableAllEntriesBtn?.addEventListener("click", () => {
+    const lorebook = lbv2GetActiveLorebook();
+    if (!lorebook) return;
+    lorebook.entries = (lorebook.entries || []).map((entry) => ({ ...entry, enabled: false, updatedAt: new Date().toISOString() }));
+    lbv2PersistLorebook(lorebook);
+    lbv2RenderEntryList();
+  });
+
+  els.lbv2EnableAllEntriesBtn?.addEventListener("click", () => {
+    const lorebook = lbv2GetActiveLorebook();
+    if (!lorebook) return;
+    lorebook.entries = (lorebook.entries || []).map((entry) => ({ ...entry, enabled: true, updatedAt: new Date().toISOString() }));
+    lbv2PersistLorebook(lorebook);
+    lbv2RenderEntryList();
+  });
+
+  els.lbv2DeleteLorebookBtn?.addEventListener("click", () => {
+    const lorebook = lbv2GetActiveLorebook();
+    if (!lorebook) return;
+    const count = Array.isArray(lorebook.entries) ? lorebook.entries.length : 0;
+    lbv2OpenDialog({
+      title: `Delete ${lorebook.name}?`,
+      body: `This will remove all ${count} entries. This cannot be undone.`,
+      confirmLabel: "Delete",
+      danger: true,
+      onConfirm: () => {
+        removeLorebook(lorebook.id);
+        lbv2CloseSettingsModal();
+        lbv2NavigateTo(1);
+      },
+    });
+  });
+
+  els.lbv2Stack.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (event.clientX > 28) return;
+    lbv2State.gesture.pointerId = event.pointerId;
+    lbv2State.gesture.startX = event.clientX;
+    lbv2State.gesture.startY = event.clientY;
+    lbv2State.gesture.tracking = true;
+  });
+
+  els.lbv2Stack.addEventListener("pointermove", (event) => {
+    if (!lbv2State.gesture.tracking || event.pointerId !== lbv2State.gesture.pointerId) return;
+    const dx = event.clientX - lbv2State.gesture.startX;
+    const dy = Math.abs(event.clientY - lbv2State.gesture.startY);
+    if (dx > 72 && dy < 36) {
+      lbv2State.gesture.tracking = false;
+      lbv2NavigateBack();
+    }
+  });
+
+  const stopGesture = (event) => {
+    if (event.pointerId !== lbv2State.gesture.pointerId) return;
+    lbv2State.gesture.pointerId = null;
+    lbv2State.gesture.tracking = false;
+  };
+
+  els.lbv2Stack.addEventListener("pointerup", stopGesture);
+  els.lbv2Stack.addEventListener("pointercancel", stopGesture);
+
+  els.lbv2Panel.querySelectorAll(".lbv2-accordion-header").forEach((header) => {
+    header.addEventListener("click", () => {
+      const accordion = header.closest(".lbv2-accordion");
+      if (!accordion) return;
+      accordion.classList.toggle("open");
+      const expanded = accordion.classList.contains("open");
+      header.setAttribute("aria-expanded", expanded ? "true" : "false");
+    });
+  });
+
+  els.lbv2Panel.querySelectorAll(".lbv2-stepper-btn").forEach((button) => {
+    const applyStep = () => {
+      const targetId = button.dataset.stepTarget;
+      const step = Number.parseInt(button.dataset.step || "1", 10) || 1;
+      if (!targetId) return;
+      const input = document.getElementById(targetId);
+      if (!input) return;
+      const min = Number.isFinite(Number(input.min)) ? Number(input.min) : null;
+      const max = Number.isFinite(Number(input.max)) ? Number(input.max) : null;
+      let value = Number.parseInt(input.value || "0", 10) || 0;
+      value += step;
+      if (min !== null) value = Math.max(min, value);
+      if (max !== null) value = Math.min(max, value);
+      input.value = String(value);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+
+    button.addEventListener("click", applyStep);
+
+    button.addEventListener("pointerdown", (event) => {
+      if (event.pointerType === "mouse" && event.button !== 0) return;
+      if (lbv2State.stepperHold.timer) clearTimeout(lbv2State.stepperHold.timer);
+      if (lbv2State.stepperHold.interval) clearInterval(lbv2State.stepperHold.interval);
+      lbv2State.stepperHold.timer = setTimeout(() => {
+        lbv2State.stepperHold.interval = setInterval(applyStep, 120);
+      }, 360);
+    });
+  });
+
+  const clearStepperHold = () => {
+    if (lbv2State.stepperHold.timer) clearTimeout(lbv2State.stepperHold.timer);
+    if (lbv2State.stepperHold.interval) clearInterval(lbv2State.stepperHold.interval);
+    lbv2State.stepperHold.timer = null;
+    lbv2State.stepperHold.interval = null;
+  };
+
+  document.addEventListener("pointerup", clearStepperHold);
+  document.addEventListener("pointercancel", clearStepperHold);
+}
+
+function renderLorebooksV2() {
+  if (!LOREBOOK_V2_ENABLED || !els.lbv2LorebookList) return;
+
+  state.lorebooks = (Array.isArray(state.lorebooks) ? state.lorebooks : [])
+    .map((book) => withLorebookTimestamps(normalizeLorebookRecord(book), book));
+
+  lbv2RenderLorebookList();
+  lbv2RenderEntryList();
+  lbv2RenderEditor();
+  lbv2SyncStack();
+  lbv2UpdateSwitchAria();
+}
+
+function lbv2GetLorebookChatAttachmentCount(book) {
+  if (!book) return 0;
+  return (Array.isArray(state.chats) ? state.chats : []).filter((chat) => lbv2IsLorebookAttachedToChat(book, chat)).length;
+}
+
+function lbv2RenderLorebookList() {
+  if (!els.lbv2LorebookList) return;
+
+  const query = String(lbv2State.lorebookSearchQuery || "").trim().toLowerCase();
+  const currentChat = getCurrentChat();
+
+  let lorebooks = lbv2ApplyLorebookSort(
+    (Array.isArray(state.lorebooks) ? state.lorebooks : [])
+      .map((book) => withLorebookTimestamps(book, book))
+      .filter((book) => {
+        if (!query) return true;
+        return `${book.name || ""} ${book.description || ""}`.toLowerCase().includes(query);
+      })
+  );
+
+  els.lbv2LorebookList.innerHTML = "";
+
+  if (!lorebooks.length) {
+    els.lbv2LorebookEmptyState?.classList.remove("hidden");
+    return;
+  }
+
+  els.lbv2LorebookEmptyState?.classList.add("hidden");
+
+  lorebooks.forEach((book) => {
+    const attached = lbv2IsLorebookAttachedToChat(book, currentChat);
+    const tokenTotal = countLorebookTokens(book);
+    const attachedCount = lbv2GetLorebookChatAttachmentCount(book);
+
+    const card = document.createElement("article");
+    card.className = "lbv2-lorebook-card";
+    card.dataset.lorebookId = book.id;
+    card.innerHTML = `
+      <div class="lbv2-lorebook-row1">
+        <span class="lbv2-color-dot" style="background:${escapeAttribute(book.color || LOREBOOK_V2_COLORS[0])};"></span>
+        <h4 class="lbv2-lorebook-name">${escapeHtml(book.name || "Untitled lorebook")}</h4>
+        <button type="button" class="lbv2-toggle${attached ? " is-on" : ""}" aria-label="Toggle lorebook in current chat"></button>
+      </div>
+      <p class="lbv2-lorebook-desc">${escapeHtml(book.description || "No description")}</p>
+      <div class="lbv2-lorebook-meta">${book.entries?.length || 0} entries • ${tokenTotal.toLocaleString()} tk • ${attachedCount} chat(s)</div>
+    `;
+
+    const toggle = card.querySelector(".lbv2-toggle");
+    toggle?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      lbv2ToggleLorebookAttachment(book.id);
+    });
+
+    card.addEventListener("click", () => {
+      lbv2State.activeLorebookId = book.id;
+      lbv2State.activeEntryId = "";
+      lbv2State.entrySearchQuery = "";
+      if (els.lbv2EntrySearchInput) els.lbv2EntrySearchInput.value = "";
+      lbv2State.bulkMode = false;
+      lbv2State.bulkSelectedEntryIds = new Set();
+      lbv2NavigateTo(2);
+      lbv2RenderEntryList();
+    });
+
+    const openContext = () => lbv2OpenLorebookContextSheet(book);
+    card.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      openContext();
+    });
+
+    let pressTimer = null;
+    let startX = 0;
+    let startY = 0;
+    const clearPress = () => {
+      if (pressTimer) clearTimeout(pressTimer);
+      pressTimer = null;
+    };
+
+    card.addEventListener("pointerdown", (event) => {
+      if (event.pointerType === "mouse" && event.button !== 0) return;
+      startX = event.clientX;
+      startY = event.clientY;
+      clearPress();
+      pressTimer = setTimeout(() => {
+        openContext();
+      }, 520);
+    });
+
+    card.addEventListener("pointermove", (event) => {
+      if (!pressTimer) return;
+      if (Math.abs(event.clientX - startX) > 10 || Math.abs(event.clientY - startY) > 10) {
+        clearPress();
+      }
+    });
+
+    card.addEventListener("pointerup", clearPress);
+    card.addEventListener("pointercancel", clearPress);
+
+    els.lbv2LorebookList.appendChild(card);
+  });
+}
+
+function lbv2OpenLorebookContextSheet(book) {
+  if (!book) return;
+
+  const container = document.createElement("div");
+  container.className = "lbv2-sheet-content";
+
+  container.appendChild(lbv2CreateSheetButton({
+    label: "Rename",
+    onClick: () => {
+      lbv2OpenSheet({
+        title: "Rename lorebook",
+        content: (() => {
+          const form = document.createElement("div");
+          form.className = "lbv2-sheet-form";
+          const input = document.createElement("input");
+          input.type = "text";
+          input.value = book.name || "";
+          input.placeholder = "Lorebook name";
+          const saveBtn = document.createElement("button");
+          saveBtn.type = "button";
+          saveBtn.className = "lbv2-primary-btn";
+          saveBtn.textContent = "Save";
+          saveBtn.addEventListener("click", () => {
+            const value = input.value.trim() || "Untitled lorebook";
+            book.name = value;
+            lbv2PersistLorebook(book);
+            renderLorebooksV2();
+            lbv2CloseSheet();
+          });
+          form.append(input, saveBtn);
+          setTimeout(() => input.focus(), 40);
+          return form;
+        })(),
+      });
+    },
+  }));
+
+  container.appendChild(lbv2CreateSheetButton({
+    label: "Duplicate",
+    onClick: () => {
+      const nowIso = new Date().toISOString();
+      const duplicated = normalizeLorebookRecord({
+        ...book,
+        id: crypto.randomUUID(),
+        name: `${book.name || "Lorebook"} (Copy)`,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+        entries: (Array.isArray(book.entries) ? book.entries : []).map((entry, index) => ({
+          ...entry,
+          id: crypto.randomUUID(),
+          insertion_order: index,
+          created_at: nowIso,
+          updated_at: nowIso,
+        })),
+      });
+      state.lorebooks.unshift(duplicated);
+      persistState();
+      renderLorebooksV2();
+      renderDrawerLorebooks();
+      lbv2CloseSheet();
+      showToast("Lorebook duplicated", "success");
+    },
+  }));
+
+  container.appendChild(lbv2CreateSheetButton({
+    label: "Export (JSON)",
+    onClick: () => {
+      exportLorebook(book.id);
+      lbv2CloseSheet();
+    },
+  }));
+
+  container.appendChild(lbv2CreateSheetButton({
+    label: "Delete",
+    className: "danger",
+    onClick: () => {
+      lbv2CloseSheet();
+      lbv2OpenDialog({
+        title: `Delete ${book.name}?`,
+        body: `This will remove all ${book.entries?.length || 0} entries. This cannot be undone.`,
+        confirmLabel: "Delete",
+        danger: true,
+        onConfirm: () => {
+          removeLorebook(book.id);
+          lbv2NavigateTo(1);
+        },
+      });
+    },
+  }));
+
+  lbv2OpenSheet({
+    title: book.name || "Lorebook",
+    content: container,
+  });
+}
+
+function lbv2OpenCreateLorebookSheet() {
+  const form = document.createElement("div");
+  form.className = "lbv2-sheet-form";
+
+  const nameInput = document.createElement("input");
+  nameInput.type = "text";
+  nameInput.placeholder = "Lorebook name";
+
+  const descInput = document.createElement("textarea");
+  descInput.rows = 3;
+  descInput.placeholder = "Description (optional)";
+
+  const colorWrap = document.createElement("div");
+  colorWrap.className = "lbv2-color-dot-row";
+  let selectedColor = LOREBOOK_V2_COLORS[0];
+  LOREBOOK_V2_COLORS.forEach((color, index) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `lbv2-color-choice${index === 0 ? " active" : ""}`;
+    btn.style.background = color;
+    btn.setAttribute("aria-label", `Color ${index + 1}`);
+    btn.addEventListener("click", () => {
+      selectedColor = color;
+      colorWrap.querySelectorAll(".lbv2-color-choice").forEach((node) => node.classList.remove("active"));
+      btn.classList.add("active");
+    });
+    colorWrap.appendChild(btn);
+  });
+
+  const createBtn = document.createElement("button");
+  createBtn.type = "button";
+  createBtn.className = "lbv2-primary-btn";
+  createBtn.textContent = "Create";
+
+  createBtn.addEventListener("click", () => {
+    const nowIso = new Date().toISOString();
+    const lorebook = normalizeLorebookRecord({
+      id: crypto.randomUUID(),
+      name: nameInput.value.trim() || "Untitled lorebook",
+      description: descInput.value.trim(),
+      color: selectedColor,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+      entries: [],
+      defaultEntrySettings: {
+        insertionPosition: "after_system",
+        scanDepth: 10,
+        insertionOrder: 100,
+        enabled: true,
+        caseSensitive: false,
+      },
+      attachmentScope: "specific",
+      attachedChatIds: getCurrentChat()?.id ? [getCurrentChat().id] : [],
+      recursiveScanning: true,
+      maxRecursionDepth: 3,
+    });
+
+    state.lorebooks.unshift(lorebook);
+
+    const chat = getCurrentChat();
+    if (chat?.id) {
+      chat.lorebookIds = [...new Set([...(chat.lorebookIds || []), lorebook.id])];
+      syncCurrentChatFromState();
+    }
+
+    persistState();
+    renderDrawerLorebooks();
+    lbv2CloseSheet();
+
+    lbv2State.activeLorebookId = lorebook.id;
+    lbv2NavigateTo(2);
+    renderLorebooksV2();
+  });
+
+  form.append(nameInput, descInput, colorWrap, createBtn);
+
+  lbv2OpenSheet({
+    title: "New Lorebook",
+    content: form,
+  });
+
+  setTimeout(() => nameInput.focus(), 40);
+}
+
+function lbv2OpenLorebookOverflowSheet() {
+  const content = document.createElement("div");
+  content.className = "lbv2-sheet-content";
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Import Lorebook",
+    onClick: () => {
+      lbv2CloseSheet();
+      els.lorebookImportInput?.click();
+    },
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Export All Lorebooks",
+    onClick: () => {
+      exportLorebooks();
+      lbv2CloseSheet();
+    },
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Sort By",
+    sublabel: "Alphabetical, Date Modified, Date Created, Entry Count",
+    onClick: () => {
+      lbv2OpenLorebookSortPicker();
+    },
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Bulk Delete Mode",
+    className: "warning",
+    onClick: () => {
+      lbv2OpenLorebookBulkDeleteSheet();
+    },
+  }));
+
+  lbv2OpenSheet({ title: "Lorebook options", content });
+}
+
+function lbv2OpenLorebookSortPicker() {
+  const options = [
+    { key: LOREBOOK_V2_SORT_OPTIONS.ALPHABETICAL, label: "Alphabetical" },
+    { key: LOREBOOK_V2_SORT_OPTIONS.DATE_MODIFIED, label: "Date Modified" },
+    { key: LOREBOOK_V2_SORT_OPTIONS.DATE_CREATED, label: "Date Created" },
+    { key: LOREBOOK_V2_SORT_OPTIONS.ENTRY_COUNT, label: "Entry Count" },
+  ];
+
+  const content = document.createElement("div");
+  content.className = "lbv2-sheet-content";
+
+  options.forEach((option) => {
+    content.appendChild(lbv2CreateSheetButton({
+      label: option.label,
+      sublabel: lbv2State.lorebookSortBy === option.key ? "Selected" : "",
+      onClick: () => {
+        lbv2State.lorebookSortBy = option.key;
+        renderLorebooksV2();
+        lbv2CloseSheet();
+      },
+    }));
+  });
+
+  lbv2OpenSheet({ title: "Sort Lorebooks", content });
+}
+
+function lbv2OpenLorebookBulkDeleteSheet() {
+  const books = Array.isArray(state.lorebooks) ? state.lorebooks : [];
+  if (!books.length) {
+    showToast("No lorebooks to delete", "error");
+    lbv2CloseSheet();
+    return;
+  }
+
+  const form = document.createElement("div");
+  form.className = "lbv2-sheet-form";
+  const selection = new Set();
+
+  books.forEach((book) => {
+    const row = document.createElement("label");
+    row.className = "lbv2-radio-row";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) selection.add(book.id);
+      else selection.delete(book.id);
+      deleteBtn.textContent = `Delete Selected (${selection.size})`;
+    });
+    const span = document.createElement("span");
+    span.textContent = `${book.name || "Untitled"} (${book.entries?.length || 0})`;
+    row.append(checkbox, span);
+    form.appendChild(row);
+  });
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "lbv2-danger-btn";
+  deleteBtn.textContent = "Delete Selected (0)";
+  deleteBtn.addEventListener("click", () => {
+    if (!selection.size) return;
+    lbv2OpenDialog({
+      title: `Delete ${selection.size} lorebook${selection.size === 1 ? "" : "s"}?`,
+      body: "This action cannot be undone.",
+      confirmLabel: "Delete",
+      danger: true,
+      onConfirm: () => {
+        [...selection].forEach((id) => removeLorebook(id));
+        lbv2CloseSheet();
+        renderLorebooksV2();
+      },
+    });
+  });
+
+  form.appendChild(deleteBtn);
+  lbv2OpenSheet({ title: "Bulk Delete", content: form });
+}
+
+function lbv2OpenEntriesOverflowSheet() {
+  const content = document.createElement("div");
+  content.className = "lbv2-sheet-content";
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Sort By",
+    onClick: lbv2OpenEntrySortPicker,
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Filter",
+    onClick: lbv2OpenEntryFilterPicker,
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: lbv2State.bulkMode ? "Exit Bulk Select Mode" : "Bulk Select Mode",
+    onClick: () => {
+      lbv2State.bulkMode = !lbv2State.bulkMode;
+      if (!lbv2State.bulkMode) {
+        lbv2State.bulkSelectedEntryIds = new Set();
+      }
+      lbv2SyncStack();
+      lbv2RenderEntryList();
+      lbv2CloseSheet();
+    },
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Import Entries",
+    onClick: () => {
+      lbv2CloseSheet();
+      els.lbv2EntryImportInput?.click();
+    },
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Export Entries",
+    onClick: () => {
+      const lorebook = lbv2GetActiveLorebook();
+      if (!lorebook) return;
+      downloadJson(`${slugify(lorebook.name || "lorebook")}-entries.json`, lorebook.entries || []);
+      lbv2CloseSheet();
+    },
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Collapse/Expand All Previews",
+    onClick: () => {
+      lbv2State.expandedEntrySwipeId = lbv2State.expandedEntrySwipeId ? "" : "__expand__";
+      lbv2RenderEntryList();
+      lbv2CloseSheet();
+    },
+  }));
+
+  lbv2OpenSheet({ title: "Entry options", content });
+}
+
+function lbv2OpenEntrySortPicker() {
+  const options = [
+    { key: LOREBOOK_V2_SORT_OPTIONS.MANUAL, label: "Manual (drag reorder)" },
+    { key: LOREBOOK_V2_SORT_OPTIONS.ALPHABETICAL, label: "Alphabetical" },
+    { key: LOREBOOK_V2_SORT_OPTIONS.PRIORITY, label: "Insertion Order/Priority" },
+    { key: LOREBOOK_V2_SORT_OPTIONS.TOKEN_COUNT, label: "Token Count" },
+    { key: LOREBOOK_V2_SORT_OPTIONS.RECENTLY_MODIFIED, label: "Recently Modified" },
+  ];
+  const content = document.createElement("div");
+  content.className = "lbv2-sheet-content";
+  options.forEach((option) => {
+    content.appendChild(lbv2CreateSheetButton({
+      label: option.label,
+      sublabel: lbv2State.entrySortBy === option.key ? "Selected" : "",
+      onClick: () => {
+        lbv2State.entrySortBy = option.key;
+        lbv2RenderEntryList();
+        lbv2CloseSheet();
+      },
+    }));
+  });
+  lbv2OpenSheet({ title: "Sort entries", content });
+}
+
+function lbv2OpenEntryFilterPicker() {
+  const lorebook = lbv2GetActiveLorebook();
+  if (!lorebook) return;
+
+  const tags = [...new Set((lorebook.entries || []).flatMap((entry) => Array.isArray(entry.tags) ? entry.tags : []))]
+    .map((tag) => String(tag || "").trim())
+    .filter(Boolean);
+
+  const content = document.createElement("div");
+  content.className = "lbv2-sheet-content";
+
+  [
+    { value: "all", label: "All" },
+    { value: "enabled", label: "Enabled Only" },
+    { value: "disabled", label: "Disabled Only" },
+    { value: "constant", label: "Constant Only" },
+  ].forEach((option) => {
+    content.appendChild(lbv2CreateSheetButton({
+      label: option.label,
+      sublabel: lbv2State.entryFilter === option.value ? "Selected" : "",
+      onClick: () => {
+        lbv2State.entryFilter = option.value;
+        lbv2State.entryTagFilter = "";
+        lbv2RenderEntryList();
+        lbv2CloseSheet();
+      },
+    }));
+  });
+
+  if (tags.length) {
+    tags.forEach((tag) => {
+      content.appendChild(lbv2CreateSheetButton({
+        label: `Tag: ${tag}`,
+        sublabel: lbv2State.entryTagFilter === tag ? "Selected" : "",
+        onClick: () => {
+          lbv2State.entryFilter = "tag";
+          lbv2State.entryTagFilter = tag;
+          lbv2RenderEntryList();
+          lbv2CloseSheet();
+        },
+      }));
+    });
+  }
+
+  lbv2OpenSheet({ title: "Filter entries", content });
+}
+
+function lbv2OpenBulkActionsSheet() {
+  const selected = [...(lbv2State.bulkSelectedEntryIds || new Set())];
+  if (!selected.length) {
+    showToast("No entries selected", "error");
+    return;
+  }
+
+  const content = document.createElement("div");
+  content.className = "lbv2-sheet-content";
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Enable Selected",
+    onClick: () => {
+      const lorebook = lbv2GetActiveLorebook();
+      if (!lorebook) return;
+      lorebook.entries = (lorebook.entries || []).map((entry) => selected.includes(entry.id) ? { ...entry, enabled: true, updatedAt: new Date().toISOString() } : entry);
+      lbv2PersistLorebook(lorebook);
+      lbv2RenderEntryList();
+      lbv2CloseSheet();
+    },
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Disable Selected",
+    onClick: () => {
+      const lorebook = lbv2GetActiveLorebook();
+      if (!lorebook) return;
+      lorebook.entries = (lorebook.entries || []).map((entry) => selected.includes(entry.id) ? { ...entry, enabled: false, updatedAt: new Date().toISOString() } : entry);
+      lbv2PersistLorebook(lorebook);
+      lbv2RenderEntryList();
+      lbv2CloseSheet();
+    },
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Set Category",
+    onClick: () => {
+      const wrap = document.createElement("div");
+      wrap.className = "lbv2-sheet-form";
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = "Category";
+      const saveBtn = document.createElement("button");
+      saveBtn.type = "button";
+      saveBtn.className = "lbv2-primary-btn";
+      saveBtn.textContent = "Apply";
+      saveBtn.addEventListener("click", () => {
+        const lorebook = lbv2GetActiveLorebook();
+        if (!lorebook) return;
+        const value = input.value.trim();
+        lorebook.entries = (lorebook.entries || []).map((entry) => selected.includes(entry.id)
+          ? { ...entry, category: value, updatedAt: new Date().toISOString() }
+          : entry);
+        lbv2PersistLorebook(lorebook);
+        lbv2RenderEntryList();
+        lbv2CloseSheet();
+      });
+      wrap.append(input, saveBtn);
+      lbv2OpenSheet({ title: "Set category", content: wrap });
+      setTimeout(() => input.focus(), 40);
+    },
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Move to Another Lorebook",
+    onClick: () => lbv2MoveEntriesToLorebook(selected),
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Delete Selected",
+    className: "danger",
+    onClick: () => {
+      lbv2OpenDialog({
+        title: `Delete ${selected.length} entries?`,
+        body: "This cannot be undone.",
+        confirmLabel: "Delete",
+        danger: true,
+        onConfirm: () => {
+          const lorebook = lbv2GetActiveLorebook();
+          if (!lorebook) return;
+          lorebook.entries = (lorebook.entries || []).filter((entry) => !selected.includes(entry.id));
+          lorebook.entries = lorebook.entries.map((entry, index) => ({ ...entry, insertionOrder: index }));
+          lbv2State.bulkSelectedEntryIds = new Set();
+          lbv2PersistLorebook(lorebook);
+          lbv2RenderEntryList();
+        },
+      });
+    },
+  }));
+
+  lbv2OpenSheet({ title: `${selected.length} selected`, content });
+}
+
+function lbv2OpenEditorOverflowSheet() {
+  const content = document.createElement("div");
+  content.className = "lbv2-sheet-content";
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Duplicate Entry",
+    onClick: () => {
+      lbv2DuplicateActiveEntry();
+      lbv2CloseSheet();
+    },
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Move to Another Lorebook",
+    onClick: () => {
+      const entry = lbv2GetActiveEntry();
+      if (!entry) return;
+      lbv2MoveEntriesToLorebook([entry.id]);
+    },
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Copy as JSON",
+    onClick: () => {
+      const entry = lbv2GetActiveEntry();
+      if (!entry) return;
+      lbv2CopyText(JSON.stringify(entry, null, 2));
+      lbv2CloseSheet();
+    },
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "View Raw JSON",
+    onClick: () => {
+      const entry = lbv2GetActiveEntry();
+      if (!entry) return;
+      const pre = document.createElement("pre");
+      pre.className = "entity-meta";
+      pre.textContent = JSON.stringify(entry, null, 2);
+      lbv2OpenSheet({ title: "Raw entry JSON", content: pre });
+    },
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Delete Entry",
+    className: "danger",
+    onClick: () => {
+      lbv2DeleteActiveEntry();
+      lbv2CloseSheet();
+    },
+  }));
+
+  lbv2OpenSheet({ title: "Entry actions", content });
+}
+
+async function lbv2CopyText(text) {
+  try {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(String(text || ""));
+      showToast("Copied", "success");
+      return;
+    }
+  } catch {
+    // fallback below
+  }
+
+  const ta = document.createElement("textarea");
+  ta.value = String(text || "");
+  ta.style.position = "fixed";
+  ta.style.left = "-9999px";
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  ta.remove();
+  showToast("Copied", "success");
+}
+
+function lbv2DuplicateActiveEntry() {
+  const lorebook = lbv2GetActiveLorebook();
+  const entry = lbv2GetActiveEntry();
+  if (!lorebook || !entry) return;
+
+  const nowIso = new Date().toISOString();
+  const duplicate = normalizeLorebookEntry({
+    ...entry,
+    id: crypto.randomUUID(),
+    title: `${entry.title || "Entry"} (Copy)`,
+    insertion_order: (lorebook.entries?.length || 0),
+    created_at: nowIso,
+    updated_at: nowIso,
+  }, lorebook.entries?.length || 0);
+
+  lorebook.entries = [...(lorebook.entries || []), duplicate]
+    .map((item, index) => ({ ...item, insertionOrder: index }));
+
+  lbv2PersistLorebook(lorebook);
+  lbv2State.activeEntryId = duplicate.id;
+  lbv2RenderEntryList();
+  lbv2RenderEditor();
+}
+
+function lbv2DeleteActiveEntry() {
+  const lorebook = lbv2GetActiveLorebook();
+  const entry = lbv2GetActiveEntry();
+  if (!lorebook || !entry) return;
+
+  lbv2OpenDialog({
+    title: `Delete ${entry.title || "entry"}?`,
+    body: "This cannot be undone.",
+    confirmLabel: "Delete",
+    danger: true,
+    onConfirm: () => {
+      lorebook.entries = (lorebook.entries || []).filter((item) => item.id !== entry.id);
+      lorebook.entries = lorebook.entries.map((item, index) => ({ ...item, insertionOrder: index }));
+      lbv2PersistLorebook(lorebook);
+      lbv2State.activeEntryId = "";
+      lbv2NavigateTo(2);
+      lbv2RenderEntryList();
+      lbv2RenderEditor();
+    },
+  });
+}
+
+function lbv2MoveEntriesToLorebook(entryIds = []) {
+  const source = lbv2GetActiveLorebook();
+  const ids = (Array.isArray(entryIds) ? entryIds : []).filter(Boolean);
+  if (!source || !ids.length) return;
+
+  const otherBooks = state.lorebooks.filter((book) => book.id !== source.id);
+  if (!otherBooks.length) {
+    showToast("Create another lorebook first", "error");
+    return;
+  }
+
+  const content = document.createElement("div");
+  content.className = "lbv2-sheet-content";
+
+  otherBooks.forEach((book) => {
+    content.appendChild(lbv2CreateSheetButton({
+      label: book.name || "Untitled lorebook",
+      sublabel: `${book.entries?.length || 0} entries`,
+      onClick: () => {
+        lbv2MoveEntries(ids, book.id);
+        lbv2CloseSheet();
+      },
+    }));
+  });
+
+  lbv2OpenSheet({ title: "Move to lorebook", content });
+}
+
+function lbv2MoveEntries(entryIds = [], targetLorebookId = "") {
+  const source = lbv2GetActiveLorebook();
+  const target = state.lorebooks.find((book) => book.id === targetLorebookId);
+  if (!source || !target || source.id === target.id) return;
+
+  const wasBulkMode = lbv2State.bulkMode;
+  const ids = new Set(entryIds);
+  const moving = (source.entries || []).filter((entry) => ids.has(entry.id));
+  if (!moving.length) return;
+
+  source.entries = (source.entries || []).filter((entry) => !ids.has(entry.id));
+  source.entries = source.entries.map((entry, index) => ({ ...entry, insertionOrder: index }));
+
+  const nowIso = new Date().toISOString();
+  target.entries = [
+    ...(target.entries || []),
+    ...moving.map((entry) => ({ ...entry, updatedAt: nowIso })),
+  ].map((entry, index) => ({ ...entry, insertionOrder: index }));
+
+  lbv2PersistLorebook(source);
+  lbv2PersistLorebook(target);
+
+  lbv2State.bulkSelectedEntryIds = new Set();
+  if (wasBulkMode) {
+    lbv2State.bulkMode = false;
+    lbv2State.activeLorebookId = source.id;
+    lbv2State.activeEntryId = "";
+    lbv2NavigateTo(2);
+  } else if (lbv2State.activeEntryId && ids.has(lbv2State.activeEntryId)) {
+    lbv2State.activeLorebookId = target.id;
+    lbv2State.activeEntryId = moving[0]?.id || "";
+  }
+
+  lbv2RenderEntryList();
+  lbv2RenderEditor();
+  lbv2SyncStack();
+  showToast(`Moved ${moving.length} entr${moving.length === 1 ? "y" : "ies"}`, "success");
+}
+
+function lbv2OpenSettingsModal() {
+  const lorebook = lbv2GetActiveLorebook();
+  if (!lorebook || !els.lbv2SettingsModal) return;
+
+  lbv2State.suppressEditorEvents = true;
+
+  els.lbv2SettingsNameInput && (els.lbv2SettingsNameInput.value = lorebook.name || "");
+  els.lbv2SettingsDescriptionInput && (els.lbv2SettingsDescriptionInput.value = lorebook.description || "");
+  els.lbv2SettingsTokenBudgetInput && (els.lbv2SettingsTokenBudgetInput.value = String(lorebook.tokenBudget || defaults.lorebookSettings.tokenBudget));
+  els.lbv2SettingsDefaultScanDepthInput && (els.lbv2SettingsDefaultScanDepthInput.value = String(lorebook.defaultEntrySettings?.scanDepth ?? 10));
+  els.lbv2SettingsDefaultOrderInput && (els.lbv2SettingsDefaultOrderInput.value = String(lorebook.defaultEntrySettings?.insertionOrder ?? 100));
+  els.lbv2SettingsDefaultEnabledInput && (els.lbv2SettingsDefaultEnabledInput.checked = lorebook.defaultEntrySettings?.enabled !== false);
+  els.lbv2SettingsDefaultCaseInput && (els.lbv2SettingsDefaultCaseInput.checked = Boolean(lorebook.defaultEntrySettings?.caseSensitive));
+  els.lbv2SettingsRecursiveInput && (els.lbv2SettingsRecursiveInput.checked = lorebook.recursiveScanning !== false);
+  els.lbv2SettingsRecursionDepthInput && (els.lbv2SettingsRecursionDepthInput.value = String(lorebook.maxRecursionDepth ?? 3));
+  els.lbv2SettingsRecursionDepthField?.classList.toggle("hidden", !(lorebook.recursiveScanning !== false));
+
+  const defaultPosition = lorebook.defaultEntrySettings?.insertionPosition || "after_system";
+  if (els.lbv2SettingsDefaultPositionInput) els.lbv2SettingsDefaultPositionInput.value = defaultPosition;
+  const defaultPositionLabel = LBV2_INJECTION_POSITIONS.find((item) => item.value === defaultPosition)?.label || "After System Prompt";
+  if (els.lbv2SettingsDefaultPositionBtn) els.lbv2SettingsDefaultPositionBtn.textContent = defaultPositionLabel;
+
+  lbv2RenderSettingsColorDots(lorebook.color || LOREBOOK_V2_COLORS[0]);
+
+  const scope = String(lorebook.attachmentScope || "specific");
+  els.lbv2Panel.querySelectorAll('input[name="lbv2AttachmentScope"]').forEach((radio) => {
+    radio.checked = radio.value === scope;
+  });
+
+  if (els.lbv2AttachmentCharacterSelect) {
+    const existing = state.characters || [];
+    els.lbv2AttachmentCharacterSelect.innerHTML = "";
+    existing.forEach((character) => {
+      const option = document.createElement("option");
+      option.value = character.id;
+      option.textContent = character.name || "Unnamed character";
+      option.selected = character.id === lorebook.attachmentCharacterId;
+      els.lbv2AttachmentCharacterSelect.appendChild(option);
+    });
+  }
+
+  lbv2RenderAttachmentChatChips(lorebook);
+  lbv2UpdateAttachmentVisibility();
+
+  els.lbv2SettingsModal.classList.remove("hidden");
+  requestAnimationFrame(() => {
+    els.lbv2SettingsModal?.classList.add("show");
+    lbv2State.suppressEditorEvents = false;
+  });
+}
+
+function lbv2CloseSettingsModal() {
+  if (!els.lbv2SettingsModal) return;
+  lbv2State.suppressEditorEvents = true;
+  els.lbv2SettingsModal.classList.remove("show");
+  setTimeout(() => {
+    els.lbv2SettingsModal?.classList.add("hidden");
+    lbv2State.suppressEditorEvents = false;
+  }, 250);
+}
+
+function lbv2RenderSettingsColorDots(activeColor = LOREBOOK_V2_COLORS[0]) {
+  if (!els.lbv2SettingsColorDots) return;
+  els.lbv2SettingsColorDots.innerHTML = "";
+  LOREBOOK_V2_COLORS.forEach((color, index) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `lbv2-color-choice${color === activeColor ? " active" : ""}`;
+    btn.style.background = color;
+    btn.setAttribute("aria-label", `Color ${index + 1}`);
+    btn.addEventListener("click", () => {
+      els.lbv2SettingsColorDots?.querySelectorAll(".lbv2-color-choice").forEach((node) => node.classList.remove("active"));
+      btn.classList.add("active");
+      lbv2SaveSettingsModal();
+    });
+    els.lbv2SettingsColorDots.appendChild(btn);
+  });
+}
+
+function lbv2UpdateAttachmentVisibility() {
+  const selected = els.lbv2Panel.querySelector('input[name="lbv2AttachmentScope"]:checked');
+  const scope = selected?.value || "specific";
+  els.lbv2AttachmentCharacterField?.classList.toggle("hidden", scope !== "character");
+  els.lbv2AttachmentChatWrap?.classList.toggle("hidden", scope !== "specific");
+}
+
+function lbv2RenderAttachmentChatChips(book) {
+  if (!els.lbv2AttachmentChatChipRow) return;
+  els.lbv2AttachmentChatChipRow.innerHTML = "";
+  const ids = Array.isArray(book?.attachedChatIds) ? book.attachedChatIds : [];
+
+  if (!ids.length) {
+    const muted = document.createElement("small");
+    muted.className = "lbv2-helper";
+    muted.textContent = "No chats attached";
+    els.lbv2AttachmentChatChipRow.appendChild(muted);
+    return;
+  }
+
+  ids.forEach((id) => {
+    const chat = state.chats.find((item) => item.id === id);
+    const chip = document.createElement("span");
+    chip.className = "lbv2-chip";
+    chip.textContent = chat?.title || "Unknown chat";
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.setAttribute("aria-label", "Remove chat");
+    removeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>`;
+    removeBtn.addEventListener("click", () => {
+      book.attachedChatIds = ids.filter((chatId) => chatId !== id);
+      lbv2SaveSettingsModal();
+      lbv2RenderAttachmentChatChips(book);
+    });
+    chip.appendChild(removeBtn);
+    els.lbv2AttachmentChatChipRow.appendChild(chip);
+  });
+}
+
+function lbv2SaveSettingsModal() {
+  if (lbv2State.suppressEditorEvents) return;
+
+  const lorebook = lbv2GetActiveLorebook();
+  if (!lorebook || !els.lbv2SettingsModal?.classList.contains("show")) return;
+
+  lorebook.name = els.lbv2SettingsNameInput?.value?.trim() || lorebook.name || "Untitled lorebook";
+  lorebook.description = els.lbv2SettingsDescriptionInput?.value?.trim() || "";
+
+  const activeColorNode = els.lbv2SettingsColorDots?.querySelector(".lbv2-color-choice.active");
+  if (activeColorNode?.style?.background) lorebook.color = activeColorNode.style.background;
+
+  lorebook.tokenBudget = Math.min(8000, Math.max(64, Number.parseInt(els.lbv2SettingsTokenBudgetInput?.value || `${lorebook.tokenBudget || 2048}`, 10) || 2048));
+  lorebook.recursiveScanning = Boolean(els.lbv2SettingsRecursiveInput?.checked ?? true);
+  lorebook.maxRecursionDepth = Math.max(0, Number.parseInt(els.lbv2SettingsRecursionDepthInput?.value || `${lorebook.maxRecursionDepth || 3}`, 10) || 3);
+
+  lorebook.defaultEntrySettings = {
+    insertionPosition: els.lbv2SettingsDefaultPositionInput?.value || lorebook.defaultEntrySettings?.insertionPosition || "after_system",
+    scanDepth: Math.max(0, Number.parseInt(els.lbv2SettingsDefaultScanDepthInput?.value || `${lorebook.defaultEntrySettings?.scanDepth ?? 10}`, 10) || 10),
+    insertionOrder: Math.max(0, Number.parseInt(els.lbv2SettingsDefaultOrderInput?.value || `${lorebook.defaultEntrySettings?.insertionOrder ?? 100}`, 10) || 100),
+    enabled: Boolean(els.lbv2SettingsDefaultEnabledInput?.checked ?? true),
+    caseSensitive: Boolean(els.lbv2SettingsDefaultCaseInput?.checked ?? false),
+  };
+
+  const selectedScope = els.lbv2Panel.querySelector('input[name="lbv2AttachmentScope"]:checked');
+  lorebook.attachmentScope = selectedScope?.value || "specific";
+  lorebook.attachmentCharacterId = els.lbv2AttachmentCharacterSelect?.value || "";
+  lorebook.attachedChatIds = normalizeStringArray(lorebook.attachedChatIds || []);
+
+  const currentChat = getCurrentChat();
+  if (currentChat?.id && lorebook.attachmentScope === "specific") {
+    const inSpecific = lorebook.attachedChatIds.includes(currentChat.id);
+    const set = new Set(currentChat.lorebookIds || []);
+    if (inSpecific) set.add(lorebook.id);
+    else set.delete(lorebook.id);
+    currentChat.lorebookIds = [...set];
+  }
+
+  lbv2PersistLorebook(lorebook);
+  lbv2RenderLorebookList();
+  lbv2RenderEntryList();
+  if (lorebook.id === lbv2State.activeLorebookId && els.lbv2EntriesBackLabel) {
+    els.lbv2EntriesBackLabel.textContent = lorebook.name || "Lorebooks";
+  }
+}
+
+function lbv2OpenAttachChatPicker() {
+  const lorebook = lbv2GetActiveLorebook();
+  if (!lorebook) return;
+
+  const content = document.createElement("div");
+  content.className = "lbv2-sheet-content";
+
+  if (!state.chats.length) {
+    const empty = document.createElement("small");
+    empty.className = "lbv2-helper";
+    empty.textContent = "No chats available";
+    content.appendChild(empty);
+  }
+
+  state.chats.forEach((chat) => {
+    const attached = Array.isArray(lorebook.attachedChatIds) && lorebook.attachedChatIds.includes(chat.id);
+    const button = lbv2CreateSheetButton({
+      label: chat.title || "Untitled chat",
+      sublabel: attached ? "Attached" : "Tap to attach",
+      onClick: () => {
+        const set = new Set(Array.isArray(lorebook.attachedChatIds) ? lorebook.attachedChatIds : []);
+        if (set.has(chat.id)) set.delete(chat.id);
+        else set.add(chat.id);
+        lorebook.attachedChatIds = [...set];
+
+        lbv2PersistLorebook(lorebook);
+        lbv2RenderAttachmentChatChips(lorebook);
+        lbv2OpenAttachChatPicker();
+      },
+    });
+    content.appendChild(button);
+  });
+
+  lbv2OpenSheet({ title: "Attach to chats", content });
+}
+
+async function lbv2ImportEntriesIntoActiveLorebook(event) {
+  const lorebook = lbv2GetActiveLorebook();
+  const files = Array.from(event?.target?.files || []);
+  if (!lorebook || !files.length) return;
+
+  try {
+    let imported = 0;
+    for (const file of files) {
+      const text = await file.text();
+      let parsed = tryParseLooseJson(text);
+      let entries = parseLorebookEntries(parsed);
+
+      if (!entries.length && /\.jsonl$/i.test(file.name || "")) {
+        const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+        const parsedLines = lines.map((line) => {
+          try { return JSON.parse(line); } catch { return null; }
+        }).filter(Boolean);
+        entries = parsedLines.map((entry, index) => normalizeLorebookEntry(entry, index));
+      }
+
+      if (!entries.length) continue;
+
+      const base = lorebook.entries?.length || 0;
+      const nowIso = new Date().toISOString();
+      const normalized = entries.map((entry, index) => normalizeLorebookEntry({
+        ...entry,
+        id: crypto.randomUUID(),
+        insertion_order: base + index,
+        created_at: entry.createdAt || nowIso,
+        updated_at: nowIso,
+      }, base + index));
+
+      lorebook.entries = [...(lorebook.entries || []), ...normalized]
+        .map((item, index) => ({ ...item, insertionOrder: index }));
+      imported += normalized.length;
+    }
+
+    if (imported) {
+      lbv2PersistLorebook(lorebook);
+      lbv2RenderEntryList();
+      showToast(`Imported ${imported} entr${imported === 1 ? "y" : "ies"}`, "success");
+    } else {
+      showToast("No entries found in file", "error");
+    }
+  } catch (error) {
+    showToast(`Import failed: ${error?.message || "invalid format"}`, "error");
+  } finally {
+    if (event?.target) event.target.value = "";
+  }
+}
+
+function lbv2ExportActiveLorebookAsSillyTavern() {
+  const lorebook = lbv2GetActiveLorebook();
+  if (!lorebook) return;
+
+  const entries = Array.isArray(lorebook.entries) ? lorebook.entries : [];
+  const worldInfoEntries = {};
+  entries.forEach((entry, index) => {
+    worldInfoEntries[String(index)] = {
+      uid: index,
+      key: entry.keys || [],
+      keysecondary: entry.secondaryKeys || [],
+      comment: entry.title || "",
+      content: entry.content || "",
+      constant: Boolean(entry.constant),
+      selective: Boolean(entry.selective),
+      selectiveLogic: entry.selectiveLogic || "AND",
+      order: Number(entry.insertionOrder || index),
+      priority: Number(entry.priority || 100),
+      probability: Number(entry.probability || 100),
+      disable: entry.enabled === false,
+      position: entry.insertionPosition || "after_system",
+    };
+  });
+
+  const payload = {
+    name: lorebook.name || "Lorebook",
+    description: lorebook.description || "",
+    world_info: {
+      entries: worldInfoEntries,
+    },
+  };
+
+  downloadJson(`${slugify(lorebook.name || "lorebook")}-st.json`, payload);
+  showToast("Exported as SillyTavern format", "success");
+}
+
+function lbv2GetCurrentEditorTags() {
+  const entry = lbv2GetActiveEntry();
+  if (!entry) return [];
+  return Array.isArray(entry.tags)
+    ? [...new Set(entry.tags.map((tag) => String(tag || "").trim()).filter(Boolean))]
+    : [];
+}
+
+function lbv2GetCurrentEditorLinkedIds() {
+  const entry = lbv2GetActiveEntry();
+  if (!entry) return [];
+  return Array.isArray(entry.linkedEntries)
+    ? [...new Set(entry.linkedEntries.map((id) => String(id || "").trim()).filter(Boolean))]
+    : [];
+}
+
+function lbv2UpdateEditorDerivedUi() {
+  const primaryKeys = parseCommaSeparatedList(els.lbv2PrimaryKeysInput?.value || "");
+  if (els.lbv2PrimaryKeysPreview) {
+    els.lbv2PrimaryKeysPreview.innerHTML = "";
+    primaryKeys.forEach((key) => {
+      const chip = document.createElement("span");
+      chip.className = "lbv2-chip";
+      chip.textContent = key;
+      els.lbv2PrimaryKeysPreview.appendChild(chip);
+    });
+  }
+
+  const content = String(els.lbv2EntryContentInput?.value || "");
+  const tokenCount = estimateTokenCount(content);
+  if (els.lbv2ContentTokenCount) {
+    els.lbv2ContentTokenCount.textContent = `${tokenCount.toLocaleString()} tk`;
+  }
+
+  const selectedStrategy = els.lbv2Panel?.querySelector('input[name="lbv2Strategy"]:checked')?.value || "normal";
+  if (els.lbv2ConstantHelper) {
+    els.lbv2ConstantHelper.classList.toggle("hidden", selectedStrategy !== "constant");
+  }
+
+  if (els.lbv2TriggerWarning) {
+    const hasNoTrigger = selectedStrategy === "normal" && primaryKeys.length === 0;
+    els.lbv2TriggerWarning.classList.toggle("hidden", !hasNoTrigger);
+  }
+
+  const position = els.lbv2InsertionPositionInput?.value || "after_system";
+  els.lbv2InsertionDepthField?.classList.toggle("hidden", position !== "depth");
+
+  const groupValue = String(els.lbv2GroupInput?.value || "").trim();
+  els.lbv2GroupWeightField?.classList.toggle("hidden", !groupValue);
+
+  lbv2UpdateSwitchAria();
+}
+
+function lbv2CollectEditorEntryDraft(existingEntry = null) {
+  const activeLorebook = lbv2GetActiveLorebook();
+  const current = existingEntry || lbv2GetActiveEntry();
+  const nowIso = new Date().toISOString();
+
+  const title = (els.lbv2EntryNameInput?.value || "").trim() || "Untitled Entry";
+  const content = (els.lbv2EntryContentInput?.value || "").trim();
+  const keys = parseCommaSeparatedList(els.lbv2PrimaryKeysInput?.value || "");
+  const secondaryKeys = parseCommaSeparatedList(els.lbv2SecondaryKeysInput?.value || "");
+
+  let activationLogic = "ANY";
+  if (els.lbv2ActivationAllInput?.checked) activationLogic = "ALL";
+  else if (els.lbv2ActivationAndOrInput?.checked) activationLogic = "AND_ANY_SECONDARY";
+  else if (els.lbv2ActivationNotInput?.checked) activationLogic = "NOT";
+
+  const strategy = els.lbv2Panel?.querySelector('input[name="lbv2Strategy"]:checked')?.value || "normal";
+  const role = els.lbv2Panel?.querySelector('input[name="lbv2MessageRole"]:checked')?.value || "system";
+
+  const tags = lbv2GetCurrentEditorTags();
+  const linkedEntries = lbv2GetCurrentEditorLinkedIds();
+
+  const payload = normalizeLorebookEntry({
+    id: current?.id || crypto.randomUUID(),
+    title,
+    comment: (els.lbv2EntryCommentInput?.value || "").trim(),
+    keys,
+    secondary_keys: secondaryKeys,
+    activation_logic: activationLogic,
+    match_whole_words: Boolean(els.lbv2WholeWordsInput?.checked),
+    use_regex: Boolean(els.lbv2RegexInput?.checked),
+    content,
+    insertion_order: Number.parseInt(els.lbv2PriorityInput?.value || `${current?.insertionOrder ?? activeLorebook?.defaultEntrySettings?.insertionOrder ?? 100}`, 10) || 100,
+    insertion_position: els.lbv2InsertionPositionInput?.value || "after_system",
+    insertion_depth: Math.max(0, Number.parseInt(els.lbv2InsertionDepthInput?.value || `${current?.insertionDepth ?? 4}`, 10) || 4),
+    role,
+    priority: Number.parseInt(els.lbv2PriorityInput?.value || `${current?.priority ?? activeLorebook?.defaultEntrySettings?.insertionOrder ?? 100}`, 10) || 100,
+    case_sensitive: Boolean(els.lbv2CaseSensitiveInput?.checked),
+    selective: secondaryKeys.length > 0,
+    selective_logic: activationLogic === "NOT" ? "NOT" : activationLogic === "AND_ANY_SECONDARY" ? "AND" : "OR",
+    scan_depth: Math.max(0, Number.parseInt(els.lbv2ScanDepthInput?.value || `${current?.scanDepth ?? activeLorebook?.defaultEntrySettings?.scanDepth ?? 10}`, 10) || 10),
+    token_budget: Math.max(0, Number.parseInt(els.lbv2PerEntryTokenBudgetInput?.value || `${current?.tokenBudget ?? 0}`, 10) || 0),
+    constant: strategy === "constant",
+    strategy,
+    prevent_recursion: Boolean(els.lbv2PreventRecursionInput?.checked),
+    exclude_from_recursion: Boolean(els.lbv2ExcludeFromRecursionInput?.checked),
+    probability: Math.min(100, Math.max(0, Number.parseInt(els.lbv2ActivationProbabilityInput?.value || `${current?.probability ?? 100}`, 10) || 100)),
+    group: (els.lbv2GroupInput?.value || "").trim(),
+    group_weight: Math.max(1, Number.parseInt(els.lbv2GroupWeightInput?.value || `${current?.groupWeight ?? 100}`, 10) || 100),
+    category: (els.lbv2CategoryInput?.value || "").trim(),
+    tags,
+    automation_id: (els.lbv2AutomationIdInput?.value || "").trim(),
+    linked_entries: linkedEntries,
+    sticky: Math.max(0, Number.parseInt(els.lbv2StickyInput?.value || `${current?.sticky ?? 0}`, 10) || 0),
+    cooldown: Math.max(0, Number.parseInt(els.lbv2CooldownInput?.value || `${current?.cooldown ?? 0}`, 10) || 0),
+    delay: Math.max(0, Number.parseInt(els.lbv2DelayInput?.value || `${current?.delay ?? 0}`, 10) || 0),
+    turn_start: Math.max(0, Number.parseInt(els.lbv2TurnStartInput?.value || `${current?.turnStart ?? 0}`, 10) || 0),
+    turn_end: Number.isFinite(Number.parseInt(els.lbv2TurnEndInput?.value || "", 10))
+      ? Math.max(0, Number.parseInt(els.lbv2TurnEndInput.value || "0", 10))
+      : null,
+    enabled: Boolean(els.lbv2EnabledInput?.checked ?? true),
+    created_at: current?.createdAt || nowIso,
+    updated_at: nowIso,
+  });
+
+  return payload;
+}
+
+function lbv2SaveEntryFromEditor({ silent = false } = {}) {
+  const lorebook = lbv2GetActiveLorebook();
+  if (!lorebook) return;
+
+  let existing = lbv2GetActiveEntry();
+  if (!existing && lbv2State.activeEntryId) {
+    existing = lbv2GetEntryById(lorebook, lbv2State.activeEntryId);
+  }
+
+  const payload = lbv2CollectEditorEntryDraft(existing);
+
+  if (!Array.isArray(lorebook.entries)) lorebook.entries = [];
+  const idx = lorebook.entries.findIndex((entry) => entry.id === payload.id);
+  if (idx >= 0) {
+    lorebook.entries[idx] = withEntryTimestamps({
+      ...lorebook.entries[idx],
+      ...payload,
+    }, lorebook.entries[idx]);
+  } else {
+    const insertion = Number.isFinite(Number(payload.insertionOrder)) ? Number(payload.insertionOrder) : lorebook.entries.length;
+    const safeIndex = Math.max(0, Math.min(lorebook.entries.length, insertion));
+    lorebook.entries.splice(safeIndex, 0, withEntryTimestamps(payload, payload));
+  }
+
+  lorebook.entries = lorebook.entries.map((entry, index) => ({
+    ...entry,
+    insertionOrder: index,
+  }));
+
+  lbv2State.activeEntryId = payload.id;
+  lbv2PersistLorebook(lorebook, { savedText: silent ? "Saved" : "Saved" });
+
+  if (!silent) {
+    lbv2RenderEntryList();
+    lbv2RenderEditor();
+  }
+}
+
+function lbv2RenderEntryList() {
+  if (!els.lbv2EntryList) return;
+
+  const lorebook = lbv2GetActiveLorebook();
+  const entries = Array.isArray(lorebook?.entries) ? lorebook.entries.map((entry) => withEntryTimestamps(entry, entry)) : [];
+
+  if (els.lbv2EntriesBackLabel) {
+    els.lbv2EntriesBackLabel.textContent = lorebook?.name || "Lorebooks";
+  }
+  if (els.lbv2EntriesTitle) {
+    els.lbv2EntriesTitle.textContent = lorebook?.name || "Entries";
+  }
+
+  let visible = entries.slice();
+  const query = String(lbv2State.entrySearchQuery || "").trim().toLowerCase();
+
+  if (query) {
+    visible = visible.filter((entry) => {
+      const haystack = [
+        entry.title,
+        Array.isArray(entry.keys) ? entry.keys.join(", ") : "",
+        Array.isArray(entry.secondaryKeys) ? entry.secondaryKeys.join(", ") : "",
+        entry.content,
+      ].join(" ").toLowerCase();
+      return haystack.includes(query);
+    });
+  }
+
+  if (lbv2State.entryFilter === "enabled") {
+    visible = visible.filter((entry) => entry.enabled !== false);
+  } else if (lbv2State.entryFilter === "disabled") {
+    visible = visible.filter((entry) => entry.enabled === false);
+  } else if (lbv2State.entryFilter === "constant") {
+    visible = visible.filter((entry) => entry.constant || entry.strategy === "constant");
+  } else if (lbv2State.entryFilter === "tag" && lbv2State.entryTagFilter) {
+    visible = visible.filter((entry) => Array.isArray(entry.tags) && entry.tags.includes(lbv2State.entryTagFilter));
+  }
+
+  visible = lbv2ApplyEntrySort(visible);
+
+  if (els.lbv2FilterChipRow) {
+    els.lbv2FilterChipRow.innerHTML = "";
+    const chips = [];
+    if (lbv2State.entryFilter && lbv2State.entryFilter !== "all") {
+      chips.push({
+        label: lbv2State.entryFilter === "tag" ? lbv2State.entryTagFilter : lbv2State.entryFilter,
+        onRemove: () => {
+          lbv2State.entryFilter = "all";
+          lbv2State.entryTagFilter = "";
+          lbv2RenderEntryList();
+        },
+      });
+    }
+    if (lbv2State.entrySortBy !== LOREBOOK_V2_SORT_OPTIONS.MANUAL) {
+      chips.push({
+        label: `Sort: ${lbv2State.entrySortBy}`,
+        onRemove: () => {
+          lbv2State.entrySortBy = LOREBOOK_V2_SORT_OPTIONS.MANUAL;
+          lbv2RenderEntryList();
+        },
+      });
+    }
+
+    chips.forEach((chipData) => {
+      const chip = document.createElement("span");
+      chip.className = "lbv2-chip";
+      chip.textContent = chipData.label;
+      const x = document.createElement("button");
+      x.type = "button";
+      x.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>`;
+      x.addEventListener("click", chipData.onRemove);
+      chip.appendChild(x);
+      els.lbv2FilterChipRow.appendChild(chip);
+    });
+
+    els.lbv2FilterChipRow.classList.toggle("hidden", chips.length === 0);
+  }
+
+  els.lbv2EntryList.innerHTML = "";
+
+  if (!lorebook) {
+    els.lbv2EntryEmptyState?.classList.remove("hidden");
+    if (els.lbv2EntryCountLabel) els.lbv2EntryCountLabel.textContent = "0 entries";
+    if (els.lbv2EntryTokenLabel) els.lbv2EntryTokenLabel.textContent = "0 tk total";
+    return;
+  }
+
+  const totalTokens = entries.reduce((sum, entry) => sum + estimateTokenCount(entry.content || ""), 0);
+  if (els.lbv2EntryCountLabel) {
+    els.lbv2EntryCountLabel.textContent = `${entries.length} ${entries.length === 1 ? "entry" : "entries"}`;
+  }
+  if (els.lbv2EntryTokenLabel) {
+    els.lbv2EntryTokenLabel.textContent = `${totalTokens.toLocaleString()} tk total`;
+  }
+
+  if (!visible.length) {
+    els.lbv2EntryEmptyState?.classList.remove("hidden");
+    return;
+  }
+
+  els.lbv2EntryEmptyState?.classList.add("hidden");
+
+  visible.forEach((entry) => {
+    const row = document.createElement("article");
+    row.className = "lbv2-entry-row";
+    row.dataset.entryId = entry.id;
+
+    const swipeActions = document.createElement("div");
+    swipeActions.className = "lbv2-swipe-actions";
+    swipeActions.innerHTML = `
+      <button type="button" class="lbv2-swipe-duplicate">Duplicate</button>
+      <button type="button" class="lbv2-swipe-delete">Delete</button>
+    `;
+
+    const card = document.createElement("div");
+    card.className = "lbv2-entry-card";
+    card.innerHTML = `
+      <div class="lbv2-entry-main">
+        <div class="lbv2-entry-row1">
+          ${lbv2State.bulkMode ? '<input type="checkbox" class="lbv2-entry-check" />' : (lbv2State.entrySortBy === LOREBOOK_V2_SORT_OPTIONS.MANUAL ? '<button type="button" class="lbv2-drag-handle" aria-label="Drag"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.5"></circle><circle cx="16" cy="6" r="1.5"></circle><circle cx="8" cy="12" r="1.5"></circle><circle cx="16" cy="12" r="1.5"></circle><circle cx="8" cy="18" r="1.5"></circle><circle cx="16" cy="18" r="1.5"></circle></svg></button>' : '<button type="button" class="lbv2-status-dot-btn"></button>')}
+          <h4 class="lbv2-entry-title">${escapeHtml(entry.title || "Untitled Entry")}</h4>
+          <span class="lbv2-token-pill">${estimateTokenCount(entry.content || "").toLocaleString()} tk</span>
+        </div>
+        <div class="lbv2-entry-sub">${escapeHtml((entry.keys || []).join(", ") || "No triggers")}</div>
+      </div>
+    `;
+
+    const statusBtn = card.querySelector(".lbv2-status-dot-btn");
+    if (statusBtn) {
+      statusBtn.classList.toggle("is-on", entry.enabled !== false);
+      statusBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const lore = lbv2GetActiveLorebook();
+        if (!lore) return;
+        const idx = lore.entries.findIndex((item) => item.id === entry.id);
+        if (idx < 0) return;
+        lore.entries[idx] = {
+          ...lore.entries[idx],
+          enabled: lore.entries[idx].enabled === false,
+          updatedAt: new Date().toISOString(),
+        };
+        lbv2PersistLorebook(lore);
+        lbv2RenderEntryList();
+      });
+    }
+
+    if (entry.constant || entry.strategy === "constant") {
+      const pin = document.createElement("span");
+      pin.className = "lbv2-pin";
+      pin.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"></path><path d="M5 7l14 0"></path><path d="M7 7l2-4h6l2 4"></path><path d="M8 7l1 7h6l1-7"></path></svg>`;
+      card.querySelector(".lbv2-entry-row1")?.appendChild(pin);
+    }
+
+    const tags = Array.isArray(entry.tags) ? entry.tags.filter(Boolean) : [];
+    if (tags.length) {
+      const wrap = document.createElement("div");
+      wrap.className = "lbv2-chip-row";
+      tags.slice(0, 4).forEach((tag) => {
+        const pill = document.createElement("span");
+        pill.className = "lbv2-tag-pill";
+        pill.textContent = tag;
+        wrap.appendChild(pill);
+      });
+      card.appendChild(wrap);
+    }
+
+    const checkbox = card.querySelector(".lbv2-entry-check");
+    if (checkbox) {
+      checkbox.checked = lbv2State.bulkSelectedEntryIds.has(entry.id);
+      checkbox.addEventListener("click", (event) => {
+        event.stopPropagation();
+      });
+    }
+
+    const openEditor = () => {
+      lbv2State.activeEntryId = entry.id;
+      lbv2NavigateTo(3);
+      lbv2RenderEditor();
+    };
+
+    card.addEventListener("click", () => {
+      if (lbv2State.bulkMode) {
+        if (lbv2State.bulkSelectedEntryIds.has(entry.id)) lbv2State.bulkSelectedEntryIds.delete(entry.id);
+        else lbv2State.bulkSelectedEntryIds.add(entry.id);
+        lbv2SyncStack();
+        lbv2RenderEntryList();
+        return;
+      }
+      openEditor();
+    });
+
+    const duplicateBtn = swipeActions.querySelector(".lbv2-swipe-duplicate");
+    duplicateBtn?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const lore = lbv2GetActiveLorebook();
+      if (!lore) return;
+      const nowIso = new Date().toISOString();
+      const duplicate = normalizeLorebookEntry({
+        ...entry,
+        id: crypto.randomUUID(),
+        title: `${entry.title || "Entry"} (Copy)`,
+        insertion_order: lore.entries.length,
+        created_at: nowIso,
+        updated_at: nowIso,
+      }, lore.entries.length);
+      lore.entries.push(duplicate);
+      lore.entries = lore.entries.map((item, index) => ({ ...item, insertionOrder: index }));
+      lbv2PersistLorebook(lore);
+      lbv2RenderEntryList();
+    });
+
+    const deleteBtn = swipeActions.querySelector(".lbv2-swipe-delete");
+    deleteBtn?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      lbv2OpenDialog({
+        title: `Delete ${entry.title || "entry"}?`,
+        body: "This cannot be undone.",
+        confirmLabel: "Delete",
+        danger: true,
+        onConfirm: () => {
+          const lore = lbv2GetActiveLorebook();
+          if (!lore) return;
+          lore.entries = lore.entries.filter((item) => item.id !== entry.id)
+            .map((item, index) => ({ ...item, insertionOrder: index }));
+          lbv2PersistLorebook(lore);
+          lbv2RenderEntryList();
+        },
+      });
+    });
+
+    let pressTimer = null;
+    let startX = 0;
+    let startY = 0;
+    let pointerStart = null;
+
+    const clearPress = () => {
+      if (pressTimer) clearTimeout(pressTimer);
+      pressTimer = null;
+    };
+
+    const openContext = () => {
+      lbv2OpenEntryContextSheet(entry.id);
+    };
+
+    card.addEventListener("pointerdown", (event) => {
+      if (event.pointerType === "mouse" && event.button !== 0) return;
+      pointerStart = event.pointerId;
+      startX = event.clientX;
+      startY = event.clientY;
+      clearPress();
+      pressTimer = setTimeout(openContext, 520);
+    });
+
+    card.addEventListener("pointermove", (event) => {
+      if (event.pointerId !== pointerStart) return;
+      const dx = event.clientX - startX;
+      const dy = Math.abs(event.clientY - startY);
+      if (Math.abs(dx) > 10 || dy > 10) clearPress();
+
+      if (!lbv2State.bulkMode) {
+        if (dx < -40) {
+          card.classList.add("is-open");
+          lbv2State.expandedEntrySwipeId = entry.id;
+        } else if (dx > 20) {
+          card.classList.remove("is-open");
+          if (lbv2State.expandedEntrySwipeId === entry.id) lbv2State.expandedEntrySwipeId = "";
+        }
+      }
+    });
+
+    card.addEventListener("pointerup", () => {
+      clearPress();
+      pointerStart = null;
+      if (lbv2State.expandedEntrySwipeId && lbv2State.expandedEntrySwipeId !== entry.id) {
+        card.classList.remove("is-open");
+      } else if (lbv2State.expandedEntrySwipeId === entry.id) {
+        card.classList.add("is-open");
+      }
+    });
+    card.addEventListener("pointercancel", () => {
+      clearPress();
+      pointerStart = null;
+    });
+
+    if (lbv2State.expandedEntrySwipeId === entry.id || lbv2State.expandedEntrySwipeId === "__expand__") {
+      card.classList.add("is-open");
+    }
+
+    if (lbv2State.entrySortBy === LOREBOOK_V2_SORT_OPTIONS.MANUAL) {
+      const handle = card.querySelector(".lbv2-drag-handle");
+      if (handle) {
+        let dragTimer = null;
+        let dragPointer = null;
+
+        const clearDrag = () => {
+          if (dragTimer) clearTimeout(dragTimer);
+          dragTimer = null;
+          dragPointer = null;
+          card.classList.remove("is-drag-source");
+          els.lbv2EntryList?.querySelectorAll(".lbv2-entry-card").forEach((node) => node.classList.remove("is-drop-target"));
+        };
+
+        handle.addEventListener("pointerdown", (event) => {
+          event.stopPropagation();
+          dragPointer = event.pointerId;
+          dragTimer = setTimeout(() => {
+            card.classList.add("is-drag-source");
+            const move = (moveEvent) => {
+              if (moveEvent.pointerId !== dragPointer) return;
+              const hovered = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)?.closest?.(".lbv2-entry-row");
+              els.lbv2EntryList?.querySelectorAll(".lbv2-entry-card").forEach((node) => node.classList.remove("is-drop-target"));
+              hovered?.querySelector(".lbv2-entry-card")?.classList.add("is-drop-target");
+            };
+
+            const up = (upEvent) => {
+              if (upEvent.pointerId !== dragPointer) return;
+              document.removeEventListener("pointermove", move);
+              document.removeEventListener("pointerup", up);
+              document.removeEventListener("pointercancel", up);
+
+              const hovered = document.elementFromPoint(upEvent.clientX, upEvent.clientY)?.closest?.(".lbv2-entry-row");
+              const lore = lbv2GetActiveLorebook();
+              if (hovered && lore) {
+                const fromId = entry.id;
+                const toId = hovered.dataset.entryId;
+                if (fromId && toId && fromId !== toId) {
+                  const arr = lore.entries || [];
+                  const fromIdx = arr.findIndex((item) => item.id === fromId);
+                  const toIdx = arr.findIndex((item) => item.id === toId);
+                  if (fromIdx >= 0 && toIdx >= 0) {
+                    const [moved] = arr.splice(fromIdx, 1);
+                    arr.splice(toIdx, 0, moved);
+                    lore.entries = arr.map((item, index) => ({ ...item, insertionOrder: index }));
+                    lbv2PersistLorebook(lore);
+                    lbv2RenderEntryList();
+                  }
+                }
+              }
+
+              clearDrag();
+            };
+
+            document.addEventListener("pointermove", move, { passive: false });
+            document.addEventListener("pointerup", up);
+            document.addEventListener("pointercancel", up);
+          }, 380);
+        });
+
+        handle.addEventListener("pointerup", clearDrag);
+        handle.addEventListener("pointercancel", clearDrag);
+        handle.addEventListener("pointermove", (event) => {
+          if (!dragTimer) return;
+          if (Math.abs(event.movementX) > 8 || Math.abs(event.movementY) > 8) {
+            clearDrag();
+          }
+        });
+      }
+    }
+
+    row.append(swipeActions, card);
+    els.lbv2EntryList.appendChild(row);
+  });
+
+  lbv2SyncStack();
+}
+
+function lbv2OpenEntryContextSheet(entryId) {
+  const lorebook = lbv2GetActiveLorebook();
+  const entry = lbv2GetEntryById(lorebook, entryId);
+  if (!lorebook || !entry) return;
+
+  const content = document.createElement("div");
+  content.className = "lbv2-sheet-content";
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: entry.enabled === false ? "Enable" : "Disable",
+    onClick: () => {
+      const idx = lorebook.entries.findIndex((item) => item.id === entry.id);
+      if (idx < 0) return;
+      lorebook.entries[idx] = { ...lorebook.entries[idx], enabled: lorebook.entries[idx].enabled === false, updatedAt: new Date().toISOString() };
+      lbv2PersistLorebook(lorebook);
+      lbv2RenderEntryList();
+      lbv2CloseSheet();
+    },
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Duplicate",
+    onClick: () => {
+      const nowIso = new Date().toISOString();
+      const duplicate = normalizeLorebookEntry({
+        ...entry,
+        id: crypto.randomUUID(),
+        title: `${entry.title || "Entry"} (Copy)`,
+        insertion_order: lorebook.entries.length,
+        created_at: nowIso,
+        updated_at: nowIso,
+      }, lorebook.entries.length);
+      lorebook.entries.push(duplicate);
+      lorebook.entries = lorebook.entries.map((item, index) => ({ ...item, insertionOrder: index }));
+      lbv2PersistLorebook(lorebook);
+      lbv2RenderEntryList();
+      lbv2CloseSheet();
+    },
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Move to Another Lorebook",
+    onClick: () => {
+      lbv2MoveEntriesToLorebook([entry.id]);
+    },
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Copy as JSON",
+    onClick: () => {
+      lbv2CopyText(JSON.stringify(entry, null, 2));
+      lbv2CloseSheet();
+    },
+  }));
+
+  content.appendChild(lbv2CreateSheetButton({
+    label: "Delete",
+    className: "danger",
+    onClick: () => {
+      lbv2CloseSheet();
+      lbv2OpenDialog({
+        title: `Delete ${entry.title || "entry"}?`,
+        body: "This cannot be undone.",
+        confirmLabel: "Delete",
+        danger: true,
+        onConfirm: () => {
+          lorebook.entries = lorebook.entries.filter((item) => item.id !== entry.id)
+            .map((item, index) => ({ ...item, insertionOrder: index }));
+          lbv2PersistLorebook(lorebook);
+          lbv2RenderEntryList();
+        },
+      });
+    },
+  }));
+
+  lbv2OpenSheet({ title: entry.title || "Entry", content });
+}
+
+function lbv2RenderEditor() {
+  const lorebook = lbv2GetActiveLorebook();
+  const entry = lbv2GetActiveEntry();
+
+  if (!entry || !lorebook) {
+    if (els.lbv2EditorTopTitle) els.lbv2EditorTopTitle.textContent = "Entry";
+    if (els.lbv2EntryMetadata) els.lbv2EntryMetadata.textContent = "Created: — • Modified: —";
+    return;
+  }
+
+  lbv2State.suppressEditorEvents = true;
+
+  if (els.lbv2EditorTopTitle) {
+    els.lbv2EditorTopTitle.textContent = entry.title || "Entry";
+  }
+
+  if (els.lbv2EntryNameInput) els.lbv2EntryNameInput.value = entry.title || "";
+  if (els.lbv2EntryCommentInput) els.lbv2EntryCommentInput.value = entry.comment || "";
+  if (els.lbv2PrimaryKeysInput) els.lbv2PrimaryKeysInput.value = (entry.keys || []).join(", ");
+  if (els.lbv2SecondaryKeysInput) els.lbv2SecondaryKeysInput.value = (entry.secondaryKeys || []).join(", ");
+  if (els.lbv2CaseSensitiveInput) els.lbv2CaseSensitiveInput.checked = Boolean(entry.caseSensitive);
+  if (els.lbv2WholeWordsInput) els.lbv2WholeWordsInput.checked = Boolean(entry.matchWholeWords);
+  if (els.lbv2RegexInput) els.lbv2RegexInput.checked = Boolean(entry.useRegex);
+
+  if (els.lbv2ActivationAnyInput) els.lbv2ActivationAnyInput.checked = (entry.activationLogic || "ANY") === "ANY";
+  if (els.lbv2ActivationAllInput) els.lbv2ActivationAllInput.checked = (entry.activationLogic || "ANY") === "ALL";
+  if (els.lbv2ActivationAndOrInput) els.lbv2ActivationAndOrInput.checked = (entry.activationLogic || "ANY") === "AND_ANY_SECONDARY";
+  if (els.lbv2ActivationNotInput) els.lbv2ActivationNotInput.checked = (entry.activationLogic || "ANY") === "NOT";
+
+  if (els.lbv2ScanDepthInput) {
+    const fallback = lorebook.defaultEntrySettings?.scanDepth ?? 10;
+    els.lbv2ScanDepthInput.value = String(Number.isFinite(Number(entry.scanDepth)) ? Number(entry.scanDepth) : fallback);
+  }
+  if (els.lbv2PerEntryTokenBudgetInput) els.lbv2PerEntryTokenBudgetInput.value = String(Number.isFinite(Number(entry.tokenBudget)) ? Number(entry.tokenBudget) : 0);
+
+  if (els.lbv2EntryContentInput) els.lbv2EntryContentInput.value = entry.content || "";
+
+  if (els.lbv2InsertionPositionInput) els.lbv2InsertionPositionInput.value = entry.insertionPosition || "after_system";
+  if (els.lbv2InsertionPositionBtn) {
+    const label = LBV2_INJECTION_POSITIONS.find((item) => item.value === (entry.insertionPosition || "after_system"))?.label || "After System Prompt";
+    els.lbv2InsertionPositionBtn.textContent = label;
+  }
+  if (els.lbv2InsertionDepthInput) els.lbv2InsertionDepthInput.value = String(Number.isFinite(Number(entry.insertionDepth)) ? Number(entry.insertionDepth) : 4);
+  if (els.lbv2PriorityInput) els.lbv2PriorityInput.value = String(Number.isFinite(Number(entry.priority)) ? Number(entry.priority) : 100);
+
+  const role = entry.role || "system";
+  els.lbv2Panel?.querySelectorAll('input[name="lbv2MessageRole"]').forEach((radio) => {
+    radio.checked = radio.value === role;
+  });
+
+  if (els.lbv2EnabledInput) els.lbv2EnabledInput.checked = entry.enabled !== false;
+
+  const strategy = entry.strategy || (entry.constant ? "constant" : "normal");
+  els.lbv2Panel?.querySelectorAll('input[name="lbv2Strategy"]').forEach((radio) => {
+    radio.checked = radio.value === strategy;
+  });
+
+  if (els.lbv2PreventRecursionInput) els.lbv2PreventRecursionInput.checked = Boolean(entry.preventRecursion);
+  if (els.lbv2ExcludeFromRecursionInput) els.lbv2ExcludeFromRecursionInput.checked = Boolean(entry.excludeFromRecursion);
+
+  const probability = Math.min(100, Math.max(0, Number.parseInt(entry.probability ?? 100, 10) || 100));
+  if (els.lbv2ActivationProbabilitySlider) els.lbv2ActivationProbabilitySlider.value = String(probability);
+  if (els.lbv2ActivationProbabilityInput) els.lbv2ActivationProbabilityInput.value = String(probability);
+
+  if (els.lbv2GroupInput) els.lbv2GroupInput.value = entry.group || "";
+  if (els.lbv2GroupWeightInput) els.lbv2GroupWeightInput.value = String(Number.isFinite(Number(entry.groupWeight)) ? Number(entry.groupWeight) : 100);
+
+  if (els.lbv2CategoryInput) els.lbv2CategoryInput.value = entry.category || "";
+  if (els.lbv2CategoryPickerBtn) {
+    els.lbv2CategoryPickerBtn.textContent = entry.category || "Uncategorized";
+  }
+
+  if (els.lbv2AutomationIdInput) {
+    const auto = entry.automationId || `entry_${slugify(entry.title || "entry")}_${String((entry.insertionOrder || 0) + 1).padStart(3, "0")}`;
+    els.lbv2AutomationIdInput.value = auto;
+  }
+
+  if (els.lbv2StickyInput) els.lbv2StickyInput.value = String(Number.isFinite(Number(entry.sticky)) ? Number(entry.sticky) : 0);
+  if (els.lbv2CooldownInput) els.lbv2CooldownInput.value = String(Number.isFinite(Number(entry.cooldown)) ? Number(entry.cooldown) : 0);
+  if (els.lbv2DelayInput) els.lbv2DelayInput.value = String(Number.isFinite(Number(entry.delay)) ? Number(entry.delay) : 0);
+  if (els.lbv2TurnStartInput) els.lbv2TurnStartInput.value = String(Number.isFinite(Number(entry.turnStart)) ? Number(entry.turnStart) : 0);
+  if (els.lbv2TurnEndInput) els.lbv2TurnEndInput.value = Number.isFinite(Number(entry.turnEnd)) ? String(Number(entry.turnEnd)) : "";
+
+  lbv2RenderTagList(Array.isArray(entry.tags) ? entry.tags : []);
+  lbv2RenderLinkedEntries(Array.isArray(entry.linkedEntries) ? entry.linkedEntries : []);
+
+  if (els.lbv2EntryMetadata) {
+    els.lbv2EntryMetadata.textContent = `Created: ${formatDateShort(entry.createdAt)} • Modified: ${formatRelativeTime(entry.updatedAt)}`;
+  }
+
+  lbv2UpdateEditorDerivedUi();
+  lbv2State.suppressEditorEvents = false;
+}
+
+function lbv2RenderTagList(tags = []) {
+  if (!els.lbv2TagList) return;
+  const unique = [...new Set((Array.isArray(tags) ? tags : []).map((tag) => String(tag || "").trim()).filter(Boolean))];
+  els.lbv2TagList.innerHTML = "";
+
+  unique.forEach((tag) => {
+    const chip = document.createElement("span");
+    chip.className = "lbv2-chip";
+    chip.textContent = tag;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.setAttribute("aria-label", `Remove ${tag}`);
+    remove.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>`;
+    remove.addEventListener("click", () => {
+      const entry = lbv2GetActiveEntry();
+      if (!entry) return;
+      entry.tags = unique.filter((item) => item !== tag);
+      lbv2RenderTagList(entry.tags);
+      lbv2ScheduleAutosave();
+    });
+    chip.appendChild(remove);
+    els.lbv2TagList.appendChild(chip);
+  });
+
+  const entry = lbv2GetActiveEntry();
+  if (entry) entry.tags = unique;
+}
+
+function lbv2AddTagFromInput() {
+  const input = els.lbv2TagInput;
+  const entry = lbv2GetActiveEntry();
+  if (!input || !entry) return;
+
+  const value = String(input.value || "").trim().replace(/,+$/, "");
+  if (!value) {
+    lbv2RenderTagSuggestions();
+    return;
+  }
+
+  const tags = [...new Set([...(Array.isArray(entry.tags) ? entry.tags : []), value])];
+  entry.tags = tags;
+  input.value = "";
+  lbv2RenderTagList(tags);
+  lbv2RenderTagSuggestions();
+  lbv2ScheduleAutosave();
+}
+
+function lbv2RenderTagSuggestions() {
+  if (!els.lbv2TagSuggestionList || !els.lbv2TagInput) return;
+  const lorebook = lbv2GetActiveLorebook();
+  const query = String(els.lbv2TagInput.value || "").trim().toLowerCase();
+
+  const allTags = [...new Set((lorebook?.entries || [])
+    .flatMap((entry) => Array.isArray(entry.tags) ? entry.tags : [])
+    .map((tag) => String(tag || "").trim())
+    .filter(Boolean))];
+
+  const filtered = query
+    ? allTags.filter((tag) => tag.toLowerCase().includes(query))
+    : allTags.slice(0, 6);
+
+  els.lbv2TagSuggestionList.innerHTML = "";
+  if (!filtered.length || !query) {
+    els.lbv2TagSuggestionList.classList.add("hidden");
+    return;
+  }
+
+  filtered.slice(0, 8).forEach((tag) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "lbv2-suggestion-item";
+    btn.textContent = tag;
+    btn.addEventListener("click", () => {
+      const entry = lbv2GetActiveEntry();
+      if (!entry) return;
+      entry.tags = [...new Set([...(entry.tags || []), tag])];
+      if (els.lbv2TagInput) els.lbv2TagInput.value = "";
+      lbv2RenderTagList(entry.tags);
+      lbv2RenderTagSuggestions();
+      lbv2ScheduleAutosave();
+    });
+    els.lbv2TagSuggestionList.appendChild(btn);
+  });
+
+  els.lbv2TagSuggestionList.classList.remove("hidden");
+}
+
+function lbv2RenderLinkedEntries(linkedIds = []) {
+  if (!els.lbv2LinkedEntryList) return;
+  const lorebook = lbv2GetActiveLorebook();
+  const ids = [...new Set((Array.isArray(linkedIds) ? linkedIds : []).map((id) => String(id || "").trim()).filter(Boolean))];
+  els.lbv2LinkedEntryList.innerHTML = "";
+
+  ids.forEach((id) => {
+    const linked = lbv2GetEntryById(lorebook, id);
+    if (!linked) return;
+    const chip = document.createElement("span");
+    chip.className = "lbv2-chip";
+    chip.textContent = linked.title || "Entry";
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.setAttribute("aria-label", "Remove linked entry");
+    remove.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>`;
+    remove.addEventListener("click", () => {
+      const entry = lbv2GetActiveEntry();
+      if (!entry) return;
+      entry.linkedEntries = ids.filter((entryId) => entryId !== id);
+      lbv2RenderLinkedEntries(entry.linkedEntries);
+      lbv2ScheduleAutosave();
+    });
+    chip.appendChild(remove);
+    els.lbv2LinkedEntryList.appendChild(chip);
+  });
+
+  const entry = lbv2GetActiveEntry();
+  if (entry) entry.linkedEntries = ids;
+}
+
+function lbv2OpenLinkEntryPicker() {
+  const lorebook = lbv2GetActiveLorebook();
+  const entry = lbv2GetActiveEntry();
+  if (!lorebook || !entry) return;
+
+  const content = document.createElement("div");
+  content.className = "lbv2-sheet-content";
+  const selected = new Set(Array.isArray(entry.linkedEntries) ? entry.linkedEntries : []);
+
+  (lorebook.entries || []).forEach((item) => {
+    if (item.id === entry.id) return;
+    content.appendChild(lbv2CreateSheetButton({
+      label: item.title || "Untitled entry",
+      sublabel: selected.has(item.id) ? "Linked" : "",
+      onClick: () => {
+        if (selected.has(item.id)) selected.delete(item.id);
+        else selected.add(item.id);
+        entry.linkedEntries = [...selected];
+        lbv2RenderLinkedEntries(entry.linkedEntries);
+        lbv2ScheduleAutosave();
+        lbv2OpenLinkEntryPicker();
+      },
+    }));
+  });
+
+  lbv2OpenSheet({ title: "Link Entries", content });
+}
+
+function lbv2OpenPickerSheet(kind = "") {
+  if (kind === "insertion-position") {
+    const content = document.createElement("div");
+    content.className = "lbv2-sheet-content";
+    LBV2_INJECTION_POSITIONS.forEach((option) => {
+      content.appendChild(lbv2CreateSheetButton({
+        label: option.label,
+        sublabel: els.lbv2InsertionPositionInput?.value === option.value ? "Selected" : "",
+        onClick: () => {
+          if (els.lbv2InsertionPositionInput) els.lbv2InsertionPositionInput.value = option.value;
+          if (els.lbv2InsertionPositionBtn) els.lbv2InsertionPositionBtn.textContent = option.label;
+          lbv2UpdateEditorDerivedUi();
+          lbv2ScheduleAutosave();
+          lbv2CloseSheet();
+        },
+      }));
+    });
+    lbv2OpenSheet({ title: "Insertion Position", content });
+    return;
+  }
+
+  if (kind === "default-position") {
+    const content = document.createElement("div");
+    content.className = "lbv2-sheet-content";
+    LBV2_INJECTION_POSITIONS.forEach((option) => {
+      content.appendChild(lbv2CreateSheetButton({
+        label: option.label,
+        sublabel: els.lbv2SettingsDefaultPositionInput?.value === option.value ? "Selected" : "",
+        onClick: () => {
+          if (els.lbv2SettingsDefaultPositionInput) els.lbv2SettingsDefaultPositionInput.value = option.value;
+          if (els.lbv2SettingsDefaultPositionBtn) els.lbv2SettingsDefaultPositionBtn.textContent = option.label;
+          lbv2SaveSettingsModal();
+          lbv2CloseSheet();
+        },
+      }));
+    });
+    lbv2OpenSheet({ title: "Default Position", content });
+    return;
+  }
+
+  if (kind === "category") {
+    const lorebook = lbv2GetActiveLorebook();
+    const entry = lbv2GetActiveEntry();
+    if (!lorebook || !entry) return;
+
+    const categories = [...new Set((lorebook.entries || [])
+      .map((item) => String(item.category || "").trim())
+      .filter(Boolean))];
+
+    const content = document.createElement("div");
+    content.className = "lbv2-sheet-content";
+
+    content.appendChild(lbv2CreateSheetButton({
+      label: "Uncategorized",
+      sublabel: !entry.category ? "Selected" : "",
+      onClick: () => {
+        if (els.lbv2CategoryInput) els.lbv2CategoryInput.value = "";
+        if (els.lbv2CategoryPickerBtn) els.lbv2CategoryPickerBtn.textContent = "Uncategorized";
+        lbv2ScheduleAutosave();
+        lbv2CloseSheet();
+      },
+    }));
+
+    categories.forEach((category) => {
+      content.appendChild(lbv2CreateSheetButton({
+        label: category,
+        sublabel: entry.category === category ? "Selected" : "",
+        onClick: () => {
+          if (els.lbv2CategoryInput) els.lbv2CategoryInput.value = category;
+          if (els.lbv2CategoryPickerBtn) els.lbv2CategoryPickerBtn.textContent = category;
+          lbv2ScheduleAutosave();
+          lbv2CloseSheet();
+        },
+      }));
+    });
+
+    content.appendChild(lbv2CreateSheetButton({
+      label: "+ New Category",
+      onClick: () => {
+        const form = document.createElement("div");
+        form.className = "lbv2-sheet-form";
+        const input = document.createElement("input");
+        input.type = "text";
+        input.placeholder = "Category name";
+        const create = document.createElement("button");
+        create.type = "button";
+        create.className = "lbv2-primary-btn";
+        create.textContent = "Create";
+        create.addEventListener("click", () => {
+          const value = input.value.trim();
+          if (!value) return;
+          if (els.lbv2CategoryInput) els.lbv2CategoryInput.value = value;
+          if (els.lbv2CategoryPickerBtn) els.lbv2CategoryPickerBtn.textContent = value;
+          lbv2ScheduleAutosave();
+          lbv2CloseSheet();
+        });
+        form.append(input, create);
+        lbv2OpenSheet({ title: "New Category", content: form });
+        setTimeout(() => input.focus(), 40);
+      },
+    }));
+
+    lbv2OpenSheet({ title: "Category", content });
+  }
+}
+
+function lbv2CreateEntryAndOpenEditor() {
+  const lorebook = lbv2GetActiveLorebook();
+  if (!lorebook) return;
+
+  if (!Array.isArray(lorebook.entries)) lorebook.entries = [];
+  const entry = lbv2CreateEmptyEntry(lorebook);
+  lorebook.entries.push(entry);
+  lorebook.entries = lorebook.entries.map((item, index) => ({ ...item, insertionOrder: index }));
+
+  lbv2PersistLorebook(lorebook);
+  lbv2State.activeEntryId = entry.id;
+  lbv2NavigateTo(3);
+  lbv2RenderEntryList();
+  lbv2RenderEditor();
+  lbv2ShowSaveIndicator("Saved");
+  setTimeout(() => els.lbv2EntryNameInput?.focus(), 40);
+}
+
+function renderLorebooks() {
   state.lorebooks = (Array.isArray(state.lorebooks) ? state.lorebooks : []).map((book) => normalizeLorebookRecord(book));
+
+  if (LOREBOOK_V2_ENABLED && els.lbv2Panel && els.lbv2LorebookList) {
+    renderLorebooksV2();
+    return;
+  }
+
+  if (!els.lorebookList) return;
 
   const query = els.lorebookSearchInput?.value?.trim().toLowerCase() || "";
   const attachedIds = new Set(state.chats.flatMap((chat) => Array.isArray(chat?.lorebookIds) ? chat.lorebookIds : []));
@@ -3774,9 +6970,17 @@ function getActiveChatLorebookSettings() {
     ? chat.lorebookSettings
     : defaults.lorebookSettings;
 
+  const attachedBooks = state.lorebooks.filter((book) => lbv2IsLorebookAttachedToChat(book, chat));
+  const minScan = attachedBooks.length
+    ? Math.min(...attachedBooks.map((book) => Number.parseInt(book.scanDepth ?? source?.scanDepth ?? defaults.lorebookSettings.scanDepth, 10) || defaults.lorebookSettings.scanDepth))
+    : Number.parseInt(source?.scanDepth, 10);
+  const minBudget = attachedBooks.length
+    ? Math.min(...attachedBooks.map((book) => Number.parseInt(book.tokenBudget ?? source?.tokenBudget ?? defaults.lorebookSettings.tokenBudget, 10) || defaults.lorebookSettings.tokenBudget))
+    : Number.parseInt(source?.tokenBudget, 10);
+
   return {
-    scanDepth: Math.min(64, Math.max(1, Number.parseInt(source?.scanDepth, 10) || defaults.lorebookSettings.scanDepth)),
-    tokenBudget: Math.min(8000, Math.max(64, Number.parseInt(source?.tokenBudget, 10) || defaults.lorebookSettings.tokenBudget)),
+    scanDepth: Math.min(64, Math.max(1, Number.isFinite(minScan) ? minScan : defaults.lorebookSettings.scanDepth)),
+    tokenBudget: Math.min(8000, Math.max(64, Number.isFinite(minBudget) ? minBudget : defaults.lorebookSettings.tokenBudget)),
     recursiveScanning: source?.recursiveScanning !== false,
   };
 }
