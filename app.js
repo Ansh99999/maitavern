@@ -282,6 +282,7 @@ const els = {
   messageTemplate: document.getElementById("messageTemplate"),
   navCards: Array.from(document.querySelectorAll(".nav-card")),
   views: Array.from(document.querySelectorAll(".view")),
+  libraryView: document.getElementById("libraryView"),
   characterList: document.getElementById("characterList"),
   characterSearchInput: document.getElementById("characterSearchInput"),
   characterStudioBtn: document.getElementById("characterStudioBtn"),
@@ -1145,6 +1146,7 @@ function switchView(viewId) {
   els.settingsToggle?.classList.add("hidden");
   if (viewId !== "chatsView") toggleChatDrawer(false);
   updateChatUiVisibility();
+  syncLibraryLorebookFullscreenMode();
   persistState();
 }
 
@@ -1987,16 +1989,119 @@ function estimateTokenCount(text = "") {
 }
 
 function normalizeStringArray(value) {
-  if (Array.isArray(value)) {
-    return value.map((item) => String(item || "").trim()).filter(Boolean);
+  const output = [];
+
+  const append = (item) => {
+    if (item === undefined || item === null) return;
+
+    if (Array.isArray(item)) {
+      item.forEach(append);
+      return;
+    }
+
+    if (typeof item === "string") {
+      item
+        .split(/[\n,]/)
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .forEach((part) => output.push(part));
+      return;
+    }
+
+    if (typeof item === "number") {
+      const valueText = String(item).trim();
+      if (valueText) output.push(valueText);
+      return;
+    }
+
+    if (typeof item === "object") {
+      append(
+        item.keyword
+        ?? item.key
+        ?? item.name
+        ?? item.label
+        ?? item.value
+        ?? item.text
+        ?? item.word
+        ?? ""
+      );
+    }
+  };
+
+  append(value);
+
+  return [...new Set(output.map((item) => String(item || "").trim()).filter(Boolean))];
+}
+
+function normalizeSelectiveLogic(value = "AND") {
+  const raw = String(value ?? "AND").trim().toUpperCase();
+  if (raw === "0") return "AND";
+  if (raw === "1") return "OR";
+  if (raw === "2") return "NOT";
+  if (["AND", "OR", "NOT"].includes(raw)) return raw;
+  return "AND";
+}
+
+function normalizeInsertionPosition(value) {
+  const raw = value ?? "after_system";
+
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    const map = {
+      0: "before_system",
+      1: "after_system",
+      2: "before_author_note",
+      3: "after_author_note",
+      4: "top_chat",
+      5: "bottom_chat",
+      6: "depth",
+    };
+    return map[raw] || "after_system";
   }
-  if (typeof value === "string") {
-    return value
-      .split(/[,\n]/)
-      .map((item) => item.trim())
-      .filter(Boolean);
-  }
-  return [];
+
+  const normalized = String(raw || "").trim().toLowerCase();
+  const map = {
+    before_system: "before_system",
+    before_system_prompt: "before_system",
+    before_prompt: "before_system",
+    after_system: "after_system",
+    after_system_prompt: "after_system",
+    before_author_note: "before_author_note",
+    after_author_note: "after_author_note",
+    top_chat: "top_chat",
+    top_of_chat: "top_chat",
+    bottom_chat: "bottom_chat",
+    bottom_of_chat: "bottom_chat",
+    depth: "depth",
+    "0": "before_system",
+    "1": "after_system",
+    "2": "before_author_note",
+    "3": "after_author_note",
+    "4": "top_chat",
+    "5": "bottom_chat",
+    "6": "depth",
+  };
+
+  return map[normalized] || "after_system";
+}
+
+function looksLikeLorebookEntryObject(item = {}) {
+  if (!item || typeof item !== "object") return false;
+  return (
+    Object.prototype.hasOwnProperty.call(item, "content")
+    || Object.prototype.hasOwnProperty.call(item, "entry")
+    || Object.prototype.hasOwnProperty.call(item, "text")
+    || Object.prototype.hasOwnProperty.call(item, "value")
+    || Object.prototype.hasOwnProperty.call(item, "description")
+    || Object.prototype.hasOwnProperty.call(item, "key")
+    || Object.prototype.hasOwnProperty.call(item, "keys")
+    || Object.prototype.hasOwnProperty.call(item, "keywords")
+    || Object.prototype.hasOwnProperty.call(item, "primary_keys")
+    || Object.prototype.hasOwnProperty.call(item, "secondary_keys")
+    || Object.prototype.hasOwnProperty.call(item, "secondaryKeywords")
+    || Object.prototype.hasOwnProperty.call(item, "keysecondary")
+    || Object.prototype.hasOwnProperty.call(item, "match")
+    || Object.prototype.hasOwnProperty.call(item, "triggers")
+  );
 }
 
 function normalizeLorebookEntry(entry = {}, index = 0) {
@@ -2035,17 +2140,28 @@ function normalizeLorebookEntry(entry = {}, index = 0) {
     ? Number(entry.insertion_order ?? entry.insertionOrder ?? entry.order ?? entry.uid)
     : index;
 
-  const priority = Number.isFinite(Number(entry.priority ?? entry.weight))
-    ? Number(entry.priority ?? entry.weight)
+  const priority = Number.isFinite(Number(entry.priority ?? entry.weight ?? entry.extensions?.weight))
+    ? Number(entry.priority ?? entry.weight ?? entry.extensions?.weight)
     : Number.isFinite(Number(entry.insertionPriority))
       ? Number(entry.insertionPriority)
       : 100;
 
-  const probabilityRaw = Number(entry.probability ?? entry.chance ?? entry.activationProbability ?? 100);
+  const probabilityRaw = Number(
+    entry.probability
+    ?? entry.chance
+    ?? entry.activationProbability
+    ?? entry.extensions?.probability
+    ?? 100
+  );
   const probability = Math.min(100, Math.max(0, Number.isFinite(probabilityRaw) ? probabilityRaw : 100));
 
-  let selectiveLogic = String(entry.selectiveLogic || entry.selective_logic || entry.logic || "AND").trim().toUpperCase();
-  if (!["AND", "OR", "NOT"].includes(selectiveLogic)) selectiveLogic = "AND";
+  const selectiveLogic = normalizeSelectiveLogic(
+    entry.selectiveLogic
+    ?? entry.selective_logic
+    ?? entry.logic
+    ?? entry.extensions?.selectiveLogic
+    ?? "AND"
+  );
 
   let activationLogic = String(entry.activationLogic || entry.activation_logic || "").trim().toUpperCase();
   if (!activationLogic) {
@@ -2068,6 +2184,18 @@ function normalizeLorebookEntry(entry = {}, index = 0) {
 
   const nowIso = new Date().toISOString();
 
+  const positionSource = entry.insertionPosition
+    ?? entry.insertion_position
+    ?? entry.position
+    ?? entry.extensions?.position
+    ?? "after_system";
+
+  const caseSource = entry.caseSensitive
+    ?? entry.case_sensitive
+    ?? entry.caseSensitiveMatching
+    ?? entry.case_sensitive_matching
+    ?? false;
+
   return {
     id: entry.id || entry.uid || crypto.randomUUID(),
     title: String(entry.title || entry.name || entry.comment || `Entry ${index + 1}`),
@@ -2080,12 +2208,22 @@ function normalizeLorebookEntry(entry = {}, index = 0) {
     content,
     insertionOrder,
     priority,
-    insertionPosition: String(entry.insertionPosition || entry.insertion_position || "after_system"),
-    insertionDepth: Math.max(0, Number.parseInt(entry.insertionDepth ?? entry.insertion_depth ?? 4, 10) || 4),
+    insertionPosition: normalizeInsertionPosition(positionSource),
+    insertionDepth: Math.max(
+      0,
+      Number.parseInt(
+        entry.insertionDepth
+        ?? entry.insertion_depth
+        ?? entry.depth
+        ?? entry.extensions?.depth
+        ?? 4,
+        10
+      ) || 4
+    ),
     role: ["system", "user", "assistant"].includes(String(entry.role || "system").toLowerCase())
       ? String(entry.role || "system").toLowerCase()
       : "system",
-    caseSensitive: Boolean(entry.caseSensitive ?? entry.case_sensitive ?? false),
+    caseSensitive: Boolean(caseSource),
     selective: Boolean(entry.selective ?? secondaryKeys.length > 0),
     selectiveLogic,
     scanDepth: Math.max(0, Number.parseInt(entry.scanDepth ?? entry.scan_depth ?? 0, 10) || 0),
@@ -2093,9 +2231,16 @@ function normalizeLorebookEntry(entry = {}, index = 0) {
     constant: strategy === "constant" || Boolean(entry.constant ?? false),
     strategy,
     probability,
-    enabled: entry.enabled !== false,
+    enabled: entry.enabled !== false && entry.disable !== true,
     preventRecursion: Boolean(entry.preventRecursion ?? entry.prevent_recursion ?? false),
-    excludeFromRecursion: Boolean(entry.excludeFromRecursion ?? entry.exclude_from_recursion ?? false),
+    excludeFromRecursion: Boolean(
+      entry.excludeFromRecursion
+      ?? entry.exclude_from_recursion
+      ?? entry.excludeRecursion
+      ?? entry.exclude_recursion
+      ?? entry.extensions?.excludeRecursion
+      ?? false
+    ),
     group: String(entry.group || ""),
     groupWeight: Math.max(1, Number.parseInt(entry.groupWeight ?? entry.group_weight ?? 100, 10) || 100),
     category: String(entry.category || ""),
@@ -2127,12 +2272,14 @@ function parseLorebookEntries(raw = {}) {
     raw.lorebook?.entries,
     raw.book?.entries,
     raw.items,
+    raw.memory?.entries,
+    raw.data?.memory?.entries,
   ];
 
   const seen = new Set();
   const entriesSource = [];
 
-  candidateSources.forEach((source) => {
+  const addSource = (source) => {
     if (!source) return;
 
     if (Array.isArray(source)) {
@@ -2153,7 +2300,29 @@ function parseLorebookEntries(raw = {}) {
         entriesSource.push(item);
       });
     }
-  });
+  };
+
+  candidateSources.forEach(addSource);
+
+  if (!entriesSource.length) {
+    const queue = [raw];
+    const scanned = new Set();
+
+    while (queue.length) {
+      const current = queue.shift();
+      if (!current || typeof current !== "object") continue;
+      if (scanned.has(current)) continue;
+      scanned.add(current);
+
+      if (current !== raw && looksLikeLorebookEntryObject(current)) {
+        addSource([current]);
+      }
+
+      Object.values(current).forEach((value) => {
+        if (value && typeof value === "object") queue.push(value);
+      });
+    }
+  }
 
   return entriesSource
     .map((entry, index) => normalizeLorebookEntry(entry, index))
@@ -2210,7 +2379,7 @@ function normalizeLorebookRecord(item = {}) {
     attachmentCharacterId: String(source.attachmentCharacterId || source.attachment_character_id || ""),
     attachedChatIds: normalizeStringArray(source.attachedChatIds || source.attached_chat_ids || []),
     defaultEntrySettings: {
-      insertionPosition: String(defaultsSource.insertionPosition || defaultsSource.insertion_position || "after_system"),
+      insertionPosition: normalizeInsertionPosition(defaultsSource.insertionPosition || defaultsSource.insertion_position || "after_system"),
       scanDepth: Math.max(0, Number.parseInt(defaultsSource.scanDepth ?? defaultsSource.scan_depth ?? 10, 10) || 10),
       insertionOrder: Math.max(0, Number.parseInt(defaultsSource.insertionOrder ?? defaultsSource.insertion_order ?? 100, 10) || 100),
       enabled: defaultsSource.enabled !== false,
@@ -2492,6 +2661,16 @@ function saveLorebookSettingsFromInputs() {
   showToast("Lore settings saved", "success");
 }
 
+function syncLibraryLorebookFullscreenMode() {
+  if (!els.libraryView) return;
+  const lorebookPanelActive = Boolean(els.lbv2Panel)
+    && state.activeView === "libraryView"
+    && els.lbv2Panel.classList.contains("active")
+    && !els.lbv2Panel.classList.contains("hidden");
+
+  els.libraryView.classList.toggle("library-lorebook-open", lorebookPanelActive);
+}
+
 function setActiveLibraryPanel(panelId = "libraryHubPanel") {
   const target = panelId || "libraryHubPanel";
   const showHub = target === "libraryHubPanel";
@@ -2515,13 +2694,16 @@ function setActiveLibraryPanel(panelId = "libraryHubPanel") {
   }
 
   if (!showHub && target === "libraryLorebooksPanel" && LOREBOOK_V2_ENABLED) {
-    lbv2SetLevel(1);
-    lbv2State.activeLorebookId = "";
+    if (!lbv2State.activeLorebookId) {
+      lbv2SetLevel(1);
+    }
     lbv2State.activeEntryId = "";
     lbv2State.bulkMode = false;
     lbv2State.bulkSelectedEntryIds = new Set();
     renderLorebooksV2();
   }
+
+  syncLibraryLorebookFullscreenMode();
 }
 
 function renderLibraryHub() {
@@ -3471,7 +3653,6 @@ function lbv2NavigateBack() {
   const target = lbv2State.level - 1;
   lbv2NavigateTo(target);
   if (target === 1) {
-    lbv2State.activeLorebookId = "";
     lbv2State.activeEntryId = "";
     lbv2State.bulkMode = false;
     lbv2State.bulkSelectedEntryIds = new Set();
