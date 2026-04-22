@@ -3879,6 +3879,18 @@ function lbv2ApplyLorebookSort(lorebooks = []) {
   return list;
 }
 
+function lbv2ResetEntryListUiState() {
+  lbv2State.entrySearchQuery = "";
+  lbv2State.entryFilter = "all";
+  lbv2State.entryTagFilter = "";
+  lbv2State.expandedEntrySwipeId = "";
+  lbv2State.bulkMode = false;
+  lbv2State.bulkSelectedEntryIds = new Set();
+  if (els.lbv2EntrySearchInput) {
+    els.lbv2EntrySearchInput.value = "";
+  }
+}
+
 function lbv2CreateEmptyEntry(lorebook) {
   const defaultsEntry = lorebook?.defaultEntrySettings || {};
   const nowIso = new Date().toISOString();
@@ -4324,10 +4336,7 @@ function lbv2RenderLorebookList() {
     card.addEventListener("click", () => {
       lbv2State.activeLorebookId = book.id;
       lbv2State.activeEntryId = "";
-      lbv2State.entrySearchQuery = "";
-      if (els.lbv2EntrySearchInput) els.lbv2EntrySearchInput.value = "";
-      lbv2State.bulkMode = false;
-      lbv2State.bulkSelectedEntryIds = new Set();
+      lbv2ResetEntryListUiState();
       lbv2NavigateTo(2);
       lbv2RenderEntryList();
     });
@@ -4536,6 +4545,7 @@ function lbv2OpenCreateLorebookSheet() {
     lbv2CloseSheet();
 
     lbv2State.activeLorebookId = lorebook.id;
+    lbv2ResetEntryListUiState();
     lbv2NavigateTo(2);
     renderLorebooksV2();
   });
@@ -5539,15 +5549,7 @@ function lbv2RenderEntryList() {
   const query = String(lbv2State.entrySearchQuery || "").trim().toLowerCase();
 
   if (query) {
-    visible = visible.filter((entry) => {
-      const haystack = [
-        entry.title,
-        Array.isArray(entry.keys) ? entry.keys.join(", ") : "",
-        Array.isArray(entry.secondaryKeys) ? entry.secondaryKeys.join(", ") : "",
-        entry.content,
-      ].join(" ").toLowerCase();
-      return haystack.includes(query);
-    });
+    visible = visible.filter((entry) => String(entry?.title || "").toLowerCase().includes(query));
   }
 
   if (lbv2State.entryFilter === "enabled") {
@@ -5624,6 +5626,12 @@ function lbv2RenderEntryList() {
 
   els.lbv2EntryEmptyState?.classList.add("hidden");
 
+  const clearDropTargets = () => {
+    els.lbv2EntryList?.querySelectorAll(".lbv2-entry-card").forEach((node) => {
+      node.classList.remove("is-drop-target", "is-drop-target-before", "is-drop-target-after");
+    });
+  };
+
   visible.forEach((entry) => {
     const row = document.createElement("article");
     row.className = "lbv2-entry-row";
@@ -5641,7 +5649,7 @@ function lbv2RenderEntryList() {
     card.innerHTML = `
       <div class="lbv2-entry-main">
         <div class="lbv2-entry-row1">
-          ${lbv2State.bulkMode ? '<input type="checkbox" class="lbv2-entry-check" />' : (lbv2State.entrySortBy === LOREBOOK_V2_SORT_OPTIONS.MANUAL ? '<button type="button" class="lbv2-drag-handle" aria-label="Drag"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.5"></circle><circle cx="16" cy="6" r="1.5"></circle><circle cx="8" cy="12" r="1.5"></circle><circle cx="16" cy="12" r="1.5"></circle><circle cx="8" cy="18" r="1.5"></circle><circle cx="16" cy="18" r="1.5"></circle></svg></button>' : '<button type="button" class="lbv2-status-dot-btn"></button>')}
+          ${lbv2State.bulkMode ? '<input type="checkbox" class="lbv2-entry-check" />' : (lbv2State.entrySortBy === LOREBOOK_V2_SORT_OPTIONS.MANUAL ? '<button type="button" class="lbv2-drag-handle" aria-label="Drag to reorder entry" title="Drag to reorder"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.5"></circle><circle cx="16" cy="6" r="1.5"></circle><circle cx="8" cy="12" r="1.5"></circle><circle cx="16" cy="12" r="1.5"></circle><circle cx="8" cy="18" r="1.5"></circle><circle cx="16" cy="18" r="1.5"></circle></svg></button>' : '<button type="button" class="lbv2-status-dot-btn"></button>')}
           <h4 class="lbv2-entry-title">${escapeHtml(entry.title || "Untitled Entry")}</h4>
           <span class="lbv2-token-pill">${estimateTokenCount(entry.content || "").toLocaleString()} tk</span>
         </div>
@@ -5768,6 +5776,7 @@ function lbv2RenderEntryList() {
 
     card.addEventListener("pointerdown", (event) => {
       if (event.pointerType === "mouse" && event.button !== 0) return;
+      if (event.target?.closest?.(".lbv2-drag-handle")) return;
       pointerStart = event.pointerId;
       startX = event.clientX;
       startY = event.clientY;
@@ -5810,73 +5819,121 @@ function lbv2RenderEntryList() {
       card.classList.add("is-open");
     }
 
-    if (lbv2State.entrySortBy === LOREBOOK_V2_SORT_OPTIONS.MANUAL) {
+    if (lbv2State.entrySortBy === LOREBOOK_V2_SORT_OPTIONS.MANUAL && !lbv2State.bulkMode) {
       const handle = card.querySelector(".lbv2-drag-handle");
       if (handle) {
-        let dragTimer = null;
-        let dragPointer = null;
+        let dragPointerId = null;
+        let dragSourceId = "";
+        let dragTargetId = "";
+        let dragInsertAfter = false;
+        let dragStartY = 0;
+        let dragging = false;
 
-        const clearDrag = () => {
-          if (dragTimer) clearTimeout(dragTimer);
-          dragTimer = null;
-          dragPointer = null;
+        const cleanupDrag = () => {
+          dragging = false;
+          dragPointerId = null;
+          dragSourceId = "";
+          dragTargetId = "";
+          dragInsertAfter = false;
           card.classList.remove("is-drag-source");
-          els.lbv2EntryList?.querySelectorAll(".lbv2-entry-card").forEach((node) => node.classList.remove("is-drop-target"));
+          card.style.transform = "";
+          clearDropTargets();
+          els.lbv2EntryList?.classList.remove("is-dragging");
+        };
+
+        const onPointerMove = (moveEvent) => {
+          if (moveEvent.pointerId !== dragPointerId) return;
+          moveEvent.preventDefault();
+          dragging = true;
+          const dy = moveEvent.clientY - dragStartY;
+          card.style.transform = `translateY(${dy}px)`;
+
+          const list = els.lbv2EntryList;
+          if (list) {
+            const rect = list.getBoundingClientRect();
+            const edge = 60;
+            const maxStep = 18;
+            if (moveEvent.clientY < rect.top + edge) {
+              const t = Math.max(0, (rect.top + edge - moveEvent.clientY) / edge);
+              list.scrollTop -= Math.ceil(maxStep * t);
+            } else if (moveEvent.clientY > rect.bottom - edge) {
+              const t = Math.max(0, (moveEvent.clientY - (rect.bottom - edge)) / edge);
+              list.scrollTop += Math.ceil(maxStep * t);
+            }
+          }
+
+          const hoveredRow = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)?.closest?.(".lbv2-entry-row");
+          clearDropTargets();
+          if (!hoveredRow || hoveredRow.parentElement !== els.lbv2EntryList) return;
+
+          const hoveredId = String(hoveredRow.dataset.entryId || "");
+          if (!hoveredId || hoveredId === dragSourceId) return;
+
+          const hoveredCard = hoveredRow.querySelector(".lbv2-entry-card");
+          if (!hoveredCard) return;
+
+          const hoveredRect = hoveredRow.getBoundingClientRect();
+          dragInsertAfter = moveEvent.clientY >= (hoveredRect.top + hoveredRect.height / 2);
+          dragTargetId = hoveredId;
+          hoveredCard.classList.add("is-drop-target", dragInsertAfter ? "is-drop-target-after" : "is-drop-target-before");
+        };
+
+        const onPointerUp = (upEvent) => {
+          if (upEvent.pointerId !== dragPointerId) return;
+          document.removeEventListener("pointermove", onPointerMove);
+          document.removeEventListener("pointerup", onPointerUp);
+          document.removeEventListener("pointercancel", onPointerUp);
+
+          const lore = lbv2GetActiveLorebook();
+          const sourceId = dragSourceId;
+          const targetId = dragTargetId;
+          const insertAfter = dragInsertAfter;
+          cleanupDrag();
+
+          if (!dragging || !lore || !sourceId || !targetId || sourceId === targetId) return;
+
+          const arr = Array.isArray(lore.entries) ? lore.entries.slice() : [];
+          const fromIdx = arr.findIndex((item) => item.id === sourceId);
+          const targetIdx = arr.findIndex((item) => item.id === targetId);
+          if (fromIdx < 0 || targetIdx < 0) return;
+
+          const [moved] = arr.splice(fromIdx, 1);
+          let insertionIdx = targetIdx + (insertAfter ? 1 : 0);
+          if (fromIdx < insertionIdx) insertionIdx -= 1;
+          insertionIdx = Math.max(0, Math.min(arr.length, insertionIdx));
+          arr.splice(insertionIdx, 0, moved);
+
+          lore.entries = arr.map((item, index) => ({
+            ...item,
+            insertionOrder: index,
+            updatedAt: item.id === sourceId ? new Date().toISOString() : item.updatedAt,
+          }));
+          lbv2PersistLorebook(lore, { savedText: "Reordered" });
+          lbv2RenderEntryList();
         };
 
         handle.addEventListener("pointerdown", (event) => {
+          if (event.button !== undefined && event.button !== 0) return;
+          event.preventDefault();
           event.stopPropagation();
-          dragPointer = event.pointerId;
-          dragTimer = setTimeout(() => {
-            card.classList.add("is-drag-source");
-            const move = (moveEvent) => {
-              if (moveEvent.pointerId !== dragPointer) return;
-              const hovered = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)?.closest?.(".lbv2-entry-row");
-              els.lbv2EntryList?.querySelectorAll(".lbv2-entry-card").forEach((node) => node.classList.remove("is-drop-target"));
-              hovered?.querySelector(".lbv2-entry-card")?.classList.add("is-drop-target");
-            };
-
-            const up = (upEvent) => {
-              if (upEvent.pointerId !== dragPointer) return;
-              document.removeEventListener("pointermove", move);
-              document.removeEventListener("pointerup", up);
-              document.removeEventListener("pointercancel", up);
-
-              const hovered = document.elementFromPoint(upEvent.clientX, upEvent.clientY)?.closest?.(".lbv2-entry-row");
-              const lore = lbv2GetActiveLorebook();
-              if (hovered && lore) {
-                const fromId = entry.id;
-                const toId = hovered.dataset.entryId;
-                if (fromId && toId && fromId !== toId) {
-                  const arr = lore.entries || [];
-                  const fromIdx = arr.findIndex((item) => item.id === fromId);
-                  const toIdx = arr.findIndex((item) => item.id === toId);
-                  if (fromIdx >= 0 && toIdx >= 0) {
-                    const [moved] = arr.splice(fromIdx, 1);
-                    arr.splice(toIdx, 0, moved);
-                    lore.entries = arr.map((item, index) => ({ ...item, insertionOrder: index }));
-                    lbv2PersistLorebook(lore);
-                    lbv2RenderEntryList();
-                  }
-                }
-              }
-
-              clearDrag();
-            };
-
-            document.addEventListener("pointermove", move, { passive: false });
-            document.addEventListener("pointerup", up);
-            document.addEventListener("pointercancel", up);
-          }, 380);
-        });
-
-        handle.addEventListener("pointerup", clearDrag);
-        handle.addEventListener("pointercancel", clearDrag);
-        handle.addEventListener("pointermove", (event) => {
-          if (!dragTimer) return;
-          if (Math.abs(event.movementX) > 8 || Math.abs(event.movementY) > 8) {
-            clearDrag();
+          if (event.target?.setPointerCapture) {
+            event.target.setPointerCapture(event.pointerId);
           }
+
+          dragPointerId = event.pointerId;
+          dragSourceId = entry.id;
+          dragTargetId = "";
+          dragInsertAfter = false;
+          dragStartY = event.clientY;
+          dragging = false;
+
+          card.classList.add("is-drag-source");
+          els.lbv2EntryList?.classList.add("is-dragging");
+          clearDropTargets();
+
+          document.addEventListener("pointermove", onPointerMove, { passive: false });
+          document.addEventListener("pointerup", onPointerUp);
+          document.addEventListener("pointercancel", onPointerUp);
         });
       }
     }
