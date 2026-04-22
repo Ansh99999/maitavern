@@ -1592,6 +1592,96 @@ html[data-chat-style="novel"] .message-row[data-novel-text-flow="below"] .messag
   transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease, opacity 0.14s ease;
 }
 
+.lorebook-entry-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+}
+
+.lorebook-entry-main {
+  min-width: 0;
+  cursor: pointer;
+}
+
+.lorebook-entry-topline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 4px;
+}
+
+.lorebook-entry-topline h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lorebook-entry-pill {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  line-height: 1;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--panel);
+  color: var(--text);
+}
+
+.lorebook-entry-pill.subtle {
+  color: var(--muted);
+  border-color: var(--border);
+}
+
+.lorebook-entry-subline,
+.lorebook-entry-preview {
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lorebook-entry-preview {
+  color: rgba(245, 247, 251, 0.88);
+}
+
+.lorebook-entry-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lorebook-entry-drag-handle {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 1.05rem;
+  letter-spacing: 1px;
+  touch-action: none;
+  cursor: grab;
+  padding: 0;
+}
+
+.lorebook-entry-drag-handle:active {
+  cursor: grabbing;
+}
+
 .lorebook-entry-item.longpress-arming {
   border-color: var(--border-strong);
 }
@@ -1599,7 +1689,7 @@ html[data-chat-style="novel"] .message-row[data-novel-text-flow="below"] .messag
 .lorebook-entry-item.longpress-active,
 .lorebook-entry-item.drag-source {
   z-index: 3;
-  box-shadow: 0 26px 60px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.45);
   border-color: var(--border-strong);
 }
 
@@ -1616,8 +1706,8 @@ html[data-chat-style="novel"] .message-row[data-novel-text-flow="below"] .messag
 
 .lorebook-entry-item.drop-target {
   border-color: #7dd3fc;
-  box-shadow: 0 0 0 1px rgba(125, 211, 252, 0.5), var(--shadow);
-  transform: scale(1.01);
+  box-shadow: 0 0 0 1px rgba(125, 211, 252, 0.45);
+  transform: scale(1.005);
 }
 
 .collapsible-card {

@@ -2259,6 +2259,55 @@ function normalizeLorebookEntry(entry = {}, index = 0) {
   };
 }
 
+function buildLorebookEntrySourceSignature(entry = {}) {
+  if (!entry || typeof entry !== "object") return "";
+
+  const idCandidate = entry.id ?? entry.uid ?? entry.entry_id ?? entry.entryId ?? "";
+  const idText = String(idCandidate || "").trim();
+  if (idText) return `id:${idText}`;
+
+  const keys = normalizeStringArray(
+    entry.keys
+    || entry.key
+    || entry.keywords
+    || entry.primary_keys
+    || entry.triggers
+    || entry.match
+    || []
+  ).map((value) => value.toLowerCase());
+
+  const secondaryKeys = normalizeStringArray(
+    entry.secondary_keys
+    || entry.secondaryKeys
+    || entry.secondary
+    || entry.secondary_keywords
+    || entry.secondaryKeywords
+    || entry.keysecondary
+    || entry.key_secondary
+    || []
+  ).map((value) => value.toLowerCase());
+
+  const title = String(entry.title || entry.name || entry.comment || "").trim().toLowerCase();
+  const content = String(
+    entry.content
+    ?? entry.text
+    ?? entry.value
+    ?? entry.entry
+    ?? entry.prompt
+    ?? entry.desc
+    ?? entry.description
+    ?? ""
+  ).trim().toLowerCase();
+
+  const order = String(entry.insertion_order ?? entry.insertionOrder ?? entry.order ?? "").trim();
+
+  if (!title && !content && !keys.length && !secondaryKeys.length && !order) {
+    return "";
+  }
+
+  return `sig:${title}::${keys.join("|")}::${secondaryKeys.join("|")}::${content}::${order}`;
+}
+
 function parseLorebookEntries(raw = {}) {
   if (!raw || typeof raw !== "object") return [];
 
@@ -2276,29 +2325,32 @@ function parseLorebookEntries(raw = {}) {
     raw.data?.memory?.entries,
   ];
 
-  const seen = new Set();
+  const seenObjects = new Set();
+  const seenSignatures = new Set();
   const entriesSource = [];
 
   const addSource = (source) => {
     if (!source) return;
 
+    const pushCandidate = (item) => {
+      if (!item || typeof item !== "object") return;
+      if (seenObjects.has(item)) return;
+
+      const signature = buildLorebookEntrySourceSignature(item);
+      if (signature && seenSignatures.has(signature)) return;
+
+      seenObjects.add(item);
+      if (signature) seenSignatures.add(signature);
+      entriesSource.push(item);
+    };
+
     if (Array.isArray(source)) {
-      source.forEach((item) => {
-        if (!item || typeof item !== "object") return;
-        if (seen.has(item)) return;
-        seen.add(item);
-        entriesSource.push(item);
-      });
+      source.forEach(pushCandidate);
       return;
     }
 
     if (typeof source === "object") {
-      Object.values(source).forEach((item) => {
-        if (!item || typeof item !== "object") return;
-        if (seen.has(item)) return;
-        seen.add(item);
-        entriesSource.push(item);
-      });
+      Object.values(source).forEach(pushCandidate);
     }
   };
 
@@ -3041,7 +3093,7 @@ function renderLorebookEntryDraft() {
 
   const query = lorebookEntrySearchQuery.trim().toLowerCase();
   const visibleEntries = lorebookEntryDraft
-    .map((entry, index) => ({ entry, index }))
+    .map((entry, draftIndex) => ({ entry, draftIndex }))
     .filter(({ entry }) => {
       if (!query) return true;
       const haystack = `${entry.title || ""} ${(entry.keys || []).join(" ")} ${(entry.secondaryKeys || []).join(" ")} ${entry.content || ""}`.toLowerCase();
@@ -3056,83 +3108,70 @@ function renderLorebookEntryDraft() {
     return;
   }
 
-  visibleEntries.forEach(({ entry, index }) => {
-    const card = document.createElement("article");
-    card.className = "entity-card lorebook-entry-item";
-    card.dataset.entryIndex = String(index);
+  visibleEntries.forEach(({ entry, draftIndex }, visibleIndex) => {
+    const row = document.createElement("article");
+    row.className = "lorebook-entry-row lorebook-entry-item";
+    row.dataset.entryIndex = String(draftIndex);
 
+    const title = String(entry.title || "Untitled").trim() || "Untitled";
+    const keyCount = Array.isArray(entry.keys) ? entry.keys.length : 0;
     const keyPreview = Array.isArray(entry.keys) ? entry.keys.slice(0, 4).join(", ") : "";
+    const secondaryCount = Array.isArray(entry.secondaryKeys) ? entry.secondaryKeys.length : 0;
     const contentText = String(entry.content || entry.entry || "").trim();
-    const contentPreview = contentText.slice(0, 260);
+    const contentPreview = contentText.length > 220 ? `${contentText.slice(0, 220)}…` : contentText;
 
-    card.innerHTML = `
-      <div class="entity-card-header">
-        <h3>Entry ${index + 1}: ${escapeHtml(entry.title || "Untitled")}</h3>
-        <span class="entity-meta">${(Array.isArray(entry.keys) ? entry.keys.length : 0)} keys</span>
+    row.innerHTML = `
+      <button class="lorebook-entry-drag-handle" type="button" data-action="drag-entry" title="Drag to reorder" aria-label="Drag to reorder entry ${visibleIndex + 1}">⋮⋮</button>
+      <div class="lorebook-entry-main" data-action="edit-entry">
+        <div class="lorebook-entry-topline">
+          <h3>${visibleIndex + 1}. ${escapeHtml(title)}</h3>
+          <span class="lorebook-entry-pill">${keyCount} key${keyCount === 1 ? "" : "s"}</span>
+          ${secondaryCount ? `<span class="lorebook-entry-pill subtle">${secondaryCount} secondary</span>` : ""}
+        </div>
+        <div class="lorebook-entry-subline">${escapeHtml(keyPreview || "No keys")}</div>
+        <div class="lorebook-entry-preview">${escapeHtml(contentPreview || "No content")}</div>
       </div>
-      <div class="entity-meta">${escapeHtml(keyPreview || "No keys")}</div>
-      <div class="entity-meta">${escapeHtml(contentPreview || "No content")}</div>
-      <div class="entity-card-actions">
+      <div class="lorebook-entry-actions">
         <button class="secondary" type="button" data-action="edit-entry">Edit</button>
       </div>
     `;
 
-    card.querySelector('[data-action="edit-entry"]')?.addEventListener("click", (event) => {
-      event.stopPropagation();
-      openLorebookEntryEditor(index);
+    row.querySelectorAll('[data-action="edit-entry"]').forEach((node) => {
+      node.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openLorebookEntryEditor(draftIndex);
+      });
     });
 
-    card.addEventListener("pointerdown", (event) => {
-      if (event.target?.closest?.("button")) return;
+    const dragHandle = row.querySelector('[data-action="drag-entry"]');
+    dragHandle?.addEventListener("pointerdown", (event) => {
       if (event.button !== undefined && event.button !== 0) return;
+      event.stopPropagation();
 
       clearLorebookEntryLongPressState();
-      card.classList.add("longpress-arming");
+      row.classList.add("longpress-arming");
 
       lorebookEntryLongPress.pointerId = event.pointerId;
-      lorebookEntryLongPress.sourceIndex = index;
-      lorebookEntryLongPress.targetIndex = index;
+      lorebookEntryLongPress.sourceIndex = draftIndex;
+      lorebookEntryLongPress.targetIndex = draftIndex;
       lorebookEntryLongPress.latestClientX = event.clientX;
       lorebookEntryLongPress.latestClientY = event.clientY;
-      lorebookEntryLongPress.scrollContainer = getDragScrollContainer(els.lorebookEntryList || card);
+      lorebookEntryLongPress.scrollContainer = getDragScrollContainer(els.lorebookEntryList || row);
 
       const originX = event.clientX;
       const originY = event.clientY;
+      const holdDelay = event.pointerType === "touch" ? 260 : 0;
 
-      const removePreLongPressListeners = () => {
-        document.removeEventListener("pointermove", preLongPressMove);
-        document.removeEventListener("pointerup", preLongPressEnd);
-        document.removeEventListener("pointercancel", preLongPressEnd);
+      const removePreDragListeners = () => {
+        document.removeEventListener("pointermove", preDragMove);
+        document.removeEventListener("pointerup", preDragEnd);
+        document.removeEventListener("pointercancel", preDragEnd);
       };
 
-      const preLongPressMove = (moveEvent) => {
-        if (moveEvent.pointerId !== lorebookEntryLongPress.pointerId) return;
-        lorebookEntryLongPress.latestClientX = moveEvent.clientX;
-        lorebookEntryLongPress.latestClientY = moveEvent.clientY;
-
-        // User is scrolling, cancel long-press arming and let normal scroll continue.
-        const dx = Math.abs(moveEvent.clientX - originX);
-        const dy = Math.abs(moveEvent.clientY - originY);
-        if (!lorebookEntryLongPress.active && (dy > 10 || dx > 10)) {
-          if (lorebookEntryLongPress.timer) clearTimeout(lorebookEntryLongPress.timer);
-          lorebookEntryLongPress.timer = null;
-          card.classList.remove("longpress-arming");
-          removePreLongPressListeners();
-        }
-      };
-
-      const preLongPressEnd = (upEvent) => {
-        if (upEvent.pointerId !== lorebookEntryLongPress.pointerId) return;
-        removePreLongPressListeners();
-        if (!lorebookEntryLongPress.active) {
-          clearLorebookEntryLongPressState();
-        }
-      };
-
-      lorebookEntryLongPress.timer = setTimeout(() => {
+      const activateDrag = () => {
         lorebookEntryLongPress.active = true;
-        card.classList.remove("longpress-arming");
-        card.classList.add("drag-source", "longpress-active");
+        row.classList.remove("longpress-arming");
+        row.classList.add("drag-source", "longpress-active");
         els.lorebookEntryList?.classList.add("drag-mode");
 
         lorebookEntryLongPress.moveHandler = (moveEvent) => {
@@ -3140,12 +3179,10 @@ function renderLorebookEntryDraft() {
 
           lorebookEntryLongPress.latestClientX = moveEvent.clientX;
           lorebookEntryLongPress.latestClientY = moveEvent.clientY;
-
-          // prevent page pan only after drag mode starts
           moveEvent.preventDefault();
 
           const dy = moveEvent.clientY - originY;
-          card.style.transform = `translateY(${dy}px) scale(1.02)`;
+          row.style.transform = `translateY(${dy}px) scale(1.01)`;
 
           applyDragAutoScroll(lorebookEntryLongPress.scrollContainer, lorebookEntryLongPress.latestClientY);
 
@@ -3178,7 +3215,9 @@ function renderLorebookEntryDraft() {
             && lorebookEntryDraft[from]
           ) {
             const [movedEntry] = lorebookEntryDraft.splice(from, 1);
-            const insertionIndex = from < to ? Math.max(0, to - 1) : to;
+            const insertionIndex = from < to
+              ? Math.min(lorebookEntryDraft.length, to)
+              : to;
             lorebookEntryDraft.splice(insertionIndex, 0, movedEntry);
             lorebookEntryDraft = lorebookEntryDraft.map((item, itemIndex) => ({
               ...item,
@@ -3202,15 +3241,56 @@ function renderLorebookEntryDraft() {
         document.addEventListener("pointerup", lorebookEntryLongPress.upHandler);
         document.addEventListener("pointercancel", lorebookEntryLongPress.upHandler);
         lorebookEntryLongPress.autoScrollRaf = requestAnimationFrame(autoScrollLoop);
-      }, 320);
+      };
 
-      document.addEventListener("pointermove", preLongPressMove);
-      document.addEventListener("pointerup", preLongPressEnd);
-      document.addEventListener("pointercancel", preLongPressEnd);
+      const preDragMove = (moveEvent) => {
+        if (moveEvent.pointerId !== lorebookEntryLongPress.pointerId) return;
+        lorebookEntryLongPress.latestClientX = moveEvent.clientX;
+        lorebookEntryLongPress.latestClientY = moveEvent.clientY;
+
+        if (!lorebookEntryLongPress.active) {
+          const dx = Math.abs(moveEvent.clientX - originX);
+          const dy = Math.abs(moveEvent.clientY - originY);
+          if (holdDelay > 0 && (dy > 12 || dx > 12)) {
+            if (lorebookEntryLongPress.timer) clearTimeout(lorebookEntryLongPress.timer);
+            lorebookEntryLongPress.timer = null;
+            row.classList.remove("longpress-arming");
+            removePreDragListeners();
+            clearLorebookEntryLongPressState();
+            return;
+          }
+          if (holdDelay === 0 && (dy > 4 || dx > 4)) {
+            activateDrag();
+            removePreDragListeners();
+          }
+        }
+      };
+
+      const preDragEnd = (upEvent) => {
+        if (upEvent.pointerId !== lorebookEntryLongPress.pointerId) return;
+        removePreDragListeners();
+        if (!lorebookEntryLongPress.active) {
+          clearLorebookEntryLongPressState();
+        }
+      };
+
+      if (holdDelay === 0) {
+        lorebookEntryLongPress.timer = setTimeout(() => {
+          if (!lorebookEntryLongPress.active) activateDrag();
+        }, 0);
+      } else {
+        lorebookEntryLongPress.timer = setTimeout(() => {
+          if (!lorebookEntryLongPress.active) activateDrag();
+        }, holdDelay);
+      }
+
+      document.addEventListener("pointermove", preDragMove);
+      document.addEventListener("pointerup", preDragEnd);
+      document.addEventListener("pointercancel", preDragEnd);
     });
 
-    card.addEventListener("contextmenu", (event) => event.preventDefault());
-    els.lorebookEntryList.appendChild(card);
+    row.addEventListener("contextmenu", (event) => event.preventDefault());
+    els.lorebookEntryList.appendChild(row);
   });
 }
 
