@@ -1,0 +1,67 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+.npm/
+.yarn/
+
+# Build output
+dist/
+dist-ssr/
+build/
+out/
+*.local
+
+# Vite
+.vite/
+
+# Capacitor / native
+# NOTE: the android/ (and ios/) folders ARE committed — they hold native
+# config we customize (the Kotlin OkHttp/SSE streaming plugin, cleartext
+# manifest settings, signing config). Only their build artifacts are ignored.
+.capacitor/
+
+# Android build artifacts
+*.apk
+*.aab
+*.keystore
+*.jks
+local.properties
+.gradle/
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/app/release/
+android/app/debug/
+
+# iOS build artifacts
+ios/App/build/
+ios/App/Pods/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.pem
+secrets.json
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+*.tsbuildinfo
