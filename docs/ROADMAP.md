@@ -34,8 +34,18 @@ RAG / vector memory (semantic recall + Documents) · TTS/STT · image-gen hooks 
 | Settings | [05](05-settings.md) | ✅ locked |
 | Memory system | [06](06-memory-system.md) | ✅ locked |
 | Providers & Models | [07](07-providers-and-models.md) | ✅ locked |
-| Presets / Prompt Manager | — | ⏳ next |
-| Lorebook editor (deep) | — | ⏳ todo |
+| Presets / Prompt Manager | [08](08-presets.md) | ✅ locked |
+| Data model | [09](09-data-model.md) | ✅ locked |
+| Prompt engine | [10](10-prompt-engine.md) | ✅ locked |
+| Lorebook editor (deep) | — | ⏳ next |
 | Logs viewer · Persona manager · Theme editor · Memory panel UI | — | ⏳ todo |
 | Import / compatibility pipeline | — | ⏳ todo |
 | Character Wiki | — | 🔒 reserved (awaiting spec) |
+
+### Build status
+
+| Step | Status |
+|---|---|
+| Repo + docs skeleton | ✅ done |
+| Foundation specs (data model + prompt engine) | ✅ done |
+| Phase 0 scaffold (Vite+React+TS+Tailwind+Capacitor+CI) | ⏳ next |
