@@ -1,0 +1,66 @@
+name: Build (PWA + Android APK)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    name: Web / PWA build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - name: Upload PWA build
+        uses: actions/upload-artifact@v4
+        with:
+          name: maitavern-pwa
+          path: dist
+          if-no-files-found: error
+
+  android:
+    name: Android debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - run: npm ci
+      - run: npm run build
+      # Generate the native Android project fresh (android/ is not committed yet;
+      # once we add native code — the Kotlin streaming plugin, manifest tweaks —
+      # we'll commit android/ and drop the `cap add` step).
+      - name: Add Android platform
+        run: |
+          npx cap add android
+          npx cap sync android
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: maitavern-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

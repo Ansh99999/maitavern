@@ -48,4 +48,6 @@ RAG / vector memory (semantic recall + Documents) · TTS/STT · image-gen hooks 
 |---|---|
 | Repo + docs skeleton | ✅ done |
 | Foundation specs (data model + prompt engine) | ✅ done |
-| Phase 0 scaffold (Vite+React+TS+Tailwind+Capacitor+CI) | ⏳ next |
+| Phase 0 scaffold (Vite+React+TS+Tailwind+Capacitor+CI) | ✅ done |
+| Lorebook editor design | ⏳ next |
+| Phase 1 — MVP chat | ⏳ after Lorebook design |
