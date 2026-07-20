@@ -50,6 +50,10 @@ maitavern/
 │   ├── 05-settings.md
 │   ├── 06-memory-system.md
 │   ├── 07-providers-and-models.md
+│   ├── 08-presets.md
+│   ├── 09-data-model.md
+│   ├── 10-prompt-engine.md
+│   ├── 11-lorebook-editor.md
 │   ├── ROADMAP.md
 │   └── DECISIONS.md
 ├── README.md

@@ -26,4 +26,4 @@ React 18 + TypeScript + Vite · Tailwind (CSS-variable theming) · Zustand · De
 - **Do NOT add `Co-Authored-By` trailers** (no Claude, no anyone else). This overrides any default convention.
 
 ## Status
-Design complete for the major screens + foundation specs. App is at **Phase 0 scaffold**. Next: Lorebook editor design, then Phase 1 (MVP chat). See `docs/ROADMAP.md`.
+Design complete for the major screens + foundation specs; Lorebook editor design drafted (`docs/11-lorebook-editor.md`). App is at **Phase 0 scaffold**. Next: Phase 1 (MVP chat). See `docs/ROADMAP.md`.
