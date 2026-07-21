@@ -4,6 +4,7 @@ import { timeGreeting } from '../lib/greeting';
 import { db } from '@/db/db';
 import { activeContent } from '@/types';
 import Avatar from '@/components/Avatar';
+import Icon from '@/components/Icon';
 
 /*
  * The "lounge" homepage (docs/02): logo + clock, Characters shelf, live Chats
@@ -48,23 +49,25 @@ export default function Home() {
         {/* clock → resume the most recent chat (docs/02) */}
         <button
           aria-label="Most recent chat"
-          className="text-muted text-xl disabled:opacity-40"
+          className="text-muted disabled:opacity-40 p-1"
           disabled={!mostRecentChat}
           onClick={() => mostRecentChat && navigate(`/chat/${mostRecentChat.id}`)}
         >
-          🕐
+          <Icon name="clock" size={22} />
         </button>
       </header>
 
       <main className="px-5 pb-10">
-        <h1 className="text-2xl font-semibold mt-2">
-          {g.text} {g.emoji}
+        <h1 className="text-2xl font-semibold mt-2 flex items-center gap-2">
+          {g.text} <Icon name={g.icon} size={22} className="text-accent" />
         </h1>
         <p className="text-muted mb-6">Ready to dive back in?</p>
 
         <div className="flex items-baseline justify-between mb-2">
           <h2 className="font-medium">Characters</h2>
-          <Link to="/characters" className="text-sm text-muted">see all ›</Link>
+          <Link to="/characters" className="text-sm text-muted flex items-center gap-0.5">
+            see all <Icon name="chevronRight" size={14} />
+          </Link>
         </div>
         <div className="flex gap-3 overflow-x-auto pb-2 mb-5">
           {(characters ?? []).slice(0, 8).map((c) => (
@@ -75,10 +78,10 @@ export default function Home() {
           ))}
           <Link
             to="/characters/new"
-            className="shrink-0 w-16 h-16 rounded-xl bg-surface border border-border grid place-items-center text-muted text-2xl"
+            className="shrink-0 w-16 h-16 rounded-xl bg-surface border border-border grid place-items-center text-muted"
             aria-label="New character"
           >
-            ＋
+            <Icon name="plus" size={24} />
           </Link>
         </div>
 

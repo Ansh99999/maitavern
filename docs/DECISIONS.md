@@ -9,7 +9,12 @@ Locked decisions, newest grouped by area. These are the choices the user explici
 - **License:** MIT.
 - **Phase 1 MVP:** "Standard MVP" (single-char streaming chat, one provider, ST import + basic creator, sampler preset, macros + assembler, log viewer, 4 chat styles + theming). Lorebook is Phase 2.
 
+## UI-wide
+- **No emojis anywhere in the UI — icons are inline SVGs only** (`src/components/Icon.tsx`).
+- **Character cards open a quick menu** (chats list · new chat · edit · duplicate · export · delete) — a bare tap never fires an action directly.
+
 ## Chat interface
+- **No top bar.** A floating hamburger (top-left) is the only chrome; it opens the chat menu (character info, navigation, quick settings).
 - **Four** display styles: bubble · document · discord · novel.
 - Avatars: show/hide in **every** mode (per-style memory; novel included); **never cropped** (native aspect ratio); sizing **Auto (accommodate aspect)** or **Custom**; text **wrap-around or below**, every mode.
 - Send button **morphs into Stop** during generation.

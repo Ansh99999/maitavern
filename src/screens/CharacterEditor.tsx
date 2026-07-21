@@ -4,6 +4,7 @@ import { db } from '@/db/db';
 import { makeCharacter, saveCharacter } from '@/db/repo';
 import { saveAvatarBlob } from '@/lib/cardImport';
 import Avatar from '@/components/Avatar';
+import Icon from '@/components/Icon';
 import type { Character } from '@/types';
 
 /*
@@ -47,8 +48,8 @@ export default function CharacterEditor() {
   return (
     <div className="min-h-full bg-bg text-text font-ui">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3 border-b border-border sticky top-0 bg-bg z-10">
-        <Link to="/characters" aria-label="Back" className="text-muted text-lg">
-          ‹
+        <Link to="/characters" aria-label="Back" className="text-muted">
+          <Icon name="chevronLeft" size={22} />
         </Link>
         <h1 className="text-lg font-semibold flex-1 truncate">{isNew ? 'New character' : c.name}</h1>
         <button
@@ -56,7 +57,7 @@ export default function CharacterEditor() {
           disabled={!c.name.trim()}
           className="text-sm px-4 py-1.5 rounded-lg bg-accent text-bg font-medium disabled:opacity-40"
         >
-          {saved ? 'Saved ✓' : 'Save'}
+          {saved ? 'Saved' : 'Save'}
         </button>
       </header>
 

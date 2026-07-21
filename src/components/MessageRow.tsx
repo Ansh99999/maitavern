@@ -1,5 +1,6 @@
 import ReactMarkdown from 'react-markdown';
 import Avatar from './Avatar';
+import Icon from './Icon';
 import { activeContent } from '@/types';
 import type { ChatStyle, Message } from '@/types';
 
@@ -44,25 +45,25 @@ function Actions({ message, isUser, onAction, streaming }: MessageRowProps) {
   if (streaming) return null;
   const btn = 'px-1 text-muted active:text-text';
   return (
-    <span className="text-xs opacity-70 shrink-0">
+    <span className="opacity-70 shrink-0 inline-flex items-center">
       {!isUser && (
         <button className={btn} title="Regenerate" onClick={() => onAction('regenerate', message)}>
-          ⟳
+          <Icon name="refresh" size={13} />
         </button>
       )}
       <button className={btn} title="Edit" onClick={() => onAction('edit', message)}>
-        ✎
+        <Icon name="pencil" size={13} />
       </button>
       <button className={btn} title="Copy" onClick={() => onAction('copy', message)}>
-        ⧉
+        <Icon name="copy" size={13} />
       </button>
       {!isUser && (
         <button className={btn} title="Request log" onClick={() => onAction('log', message)}>
-          ☰
+          <Icon name="list" size={13} />
         </button>
       )}
       <button className={btn} title="Delete" onClick={() => onAction('delete', message)}>
-        🗑
+        <Icon name="trash" size={13} />
       </button>
     </span>
   );

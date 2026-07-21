@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/db/db';
+import Icon from '@/components/Icon';
 import { getSettings, makeDefaultPreset, patchSettings, touch } from '@/db/repo';
 import type { ParamValue, Preset } from '@/types';
 
@@ -68,13 +69,15 @@ export default function PresetSettings() {
   return (
     <div className="min-h-full bg-bg text-text font-ui">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3 border-b border-border">
-        <Link to="/settings" aria-label="Back" className="text-muted text-lg">‹</Link>
+        <Link to="/settings" aria-label="Back" className="text-muted">
+          <Icon name="chevronLeft" size={22} />
+        </Link>
         <h1 className="text-lg font-semibold flex-1">Preset</h1>
         <button onClick={onDuplicate} className="text-sm px-3 py-1.5 rounded-lg bg-surface border border-border">
           Duplicate
         </button>
         <button onClick={onSave} className="text-sm px-4 py-1.5 rounded-lg bg-accent text-bg font-medium">
-          {Date.now() - savedAt < 2000 ? 'Saved ✓' : 'Save & activate'}
+          {Date.now() - savedAt < 2000 ? 'Saved' : 'Save & activate'}
         </button>
       </header>
 

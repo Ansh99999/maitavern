@@ -16,6 +16,8 @@ React 18 + TypeScript + Vite · Tailwind (CSS-variable theming) · Zustand · De
 
 ## Conventions
 - TypeScript strict. Functional React components. Keep new code matching surrounding style.
+- **No emojis anywhere in the UI — strictly forbidden.** All icons are inline SVGs via `src/components/Icon.tsx`.
+- Chat screen has **no top bar** — only the floating hamburger (top-left). Character cards open the **quick menu** sheet, never a direct action.
 - Theme via CSS variables (`src/index.css`) + Tailwind tokens (`bg`, `surface`, `accent`, …). Don't hardcode colors.
 - Storage shapes mirror `docs/09-data-model.md`. Respect the **Global → Character → Chat** override hierarchy and **copy-on-write** for in-chat edits.
 - All prompt assembly flows through the single engine in `docs/10-prompt-engine.md` so the Log viewer stays accurate.

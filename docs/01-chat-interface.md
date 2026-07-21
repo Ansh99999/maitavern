@@ -1,18 +1,18 @@
 # 01 — Chat Interface
 
-Mobile-first, portrait. Three regions: a slim top bar, a maximal message area, and a fixed composer.
+Mobile-first, portrait. Two regions only: a maximal message area and a fixed composer. **There is NO top bar.**
 
 ```
 ┌────────────────────────────────────────────┐
-│ ‹   Aria                          [☰]      │  Top bar (slim)
-├────────────────────────────────────────────┤
-│              MESSAGE AREA                   │  Max space, virtualized
+│ [☰]                                        │  floating hamburger (top-left) — only chrome
+│              MESSAGE AREA                   │  full-bleed, virtualized
 ├────────────────────────────────────────────┤
 │ (P)  Type a message…           [⋮]  [➤]   │  Composer
 └────────────────────────────────────────────┘
 ```
 
-- **Top bar:** back · character name (+ tiny avatar) · `☰` opens the **Quick Settings sidebar** (swap preset/provider, author's note, lorebooks, theme, global logs).
+- **No top bar.** A single floating **hamburger button (top-left)** is the chat's only chrome; it opens the **chat menu / Quick Settings sidebar** (character info, navigation home, swap preset/provider, author's note, lorebooks, theme, global logs). Back-navigation lives in that menu.
+- **Icons are inline SVGs only — emojis are forbidden anywhere in the UI** (the glyphs in these ASCII mockups are notation, not rendered characters).
 
 ## Display styles (user-selectable; remembered per style)
 

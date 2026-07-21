@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/db/db';
 import LogSheet from '@/components/LogSheet';
+import Icon from '@/components/Icon';
 
 /*
  * Global request-log viewer (docs/01 "global logs"): most recent generations
@@ -18,7 +19,9 @@ export default function Logs() {
   return (
     <div className="min-h-full bg-bg text-text font-ui">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3 border-b border-border">
-        <Link to="/settings" aria-label="Back" className="text-muted text-lg">‹</Link>
+        <Link to="/settings" aria-label="Back" className="text-muted">
+          <Icon name="chevronLeft" size={22} />
+        </Link>
         <h1 className="text-lg font-semibold flex-1">Request logs</h1>
         <button
           onClick={async () => {
@@ -46,9 +49,9 @@ export default function Logs() {
             </div>
             <div className="text-xs text-muted">
               {log.assembledBlocks.length} blocks
-              {log.usage ? ` · ${log.usage.in}→${log.usage.out} tok` : ''}
+              {log.usage ? ` · ${log.usage.in} in · ${log.usage.out} out` : ''}
               {log.ms ? ` · ${log.ms}ms` : ''}
-              {log.responseRaw && (log.responseRaw as { error?: string }).error ? ' · ⚠ error' : ''}
+              {log.responseRaw && (log.responseRaw as { error?: string }).error ? ' · error' : ''}
             </div>
           </button>
         ))}

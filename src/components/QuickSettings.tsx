@@ -1,20 +1,26 @@
+import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/db/db';
 import { getSettings, patchSettings } from '@/db/repo';
-import type { Chat, ChatStyle, Settings } from '@/types';
+import Avatar from './Avatar';
+import Icon from './Icon';
+import type { Character, Chat, ChatStyle, Settings } from '@/types';
 
 /*
- * Quick Settings sidebar (docs/01 top-bar ☰): swap preset/provider for THIS
- * chat (per-chat override) or globally, pick the display style, toggle
- * avatars. Scenario override + author's note editors arrive in Phase 2.
+ * The chat menu (docs/01, revised): opened by the floating hamburger — the
+ * chat screen's ONLY chrome. Carries the character header, navigation, and
+ * quick settings (display style, avatars, per-chat preset/provider).
+ * Scenario override + author's note editors arrive in Phase 2.
  */
 export default function QuickSettings({
   chat,
+  character,
   settings,
   onSettingsChange,
   onClose,
 }: {
   chat: Chat;
+  character: Character;
   settings: Settings;
   onSettingsChange: (s: Settings) => void;
   onClose: () => void;
@@ -39,17 +45,39 @@ export default function QuickSettings({
 
   const select =
     'w-full px-3 py-2 rounded-xl bg-surface-2 border border-border outline-none focus:border-accent text-sm';
+  const navRow = 'flex items-center gap-3 px-1 py-2 text-sm active:text-accent';
 
   return (
     <div className="fixed inset-0 z-40 bg-black/60" onClick={onClose}>
       <aside
-        className="absolute right-0 inset-y-0 w-72 bg-surface border-l border-border p-4 overflow-y-auto"
+        className="absolute left-0 inset-y-0 w-72 bg-surface border-r border-border p-4 overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center mb-4">
-          <h2 className="font-semibold flex-1">Quick settings</h2>
-          <button onClick={onClose} className="text-muted px-2">✕</button>
+        <div className="flex items-center gap-3 mb-4">
+          <Avatar assetId={character.avatarAssetId} name={character.name} className="w-10 h-10" />
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold truncate">{character.name}</div>
+            <div className="text-xs text-muted truncate">{chat.title}</div>
+          </div>
+          <button onClick={onClose} aria-label="Close" className="text-muted p-1">
+            <Icon name="x" size={20} />
+          </button>
         </div>
+
+        <nav className="mb-4 border-b border-border pb-3">
+          <Link to="/" className={navRow}>
+            <Icon name="home" size={16} className="text-muted" /> Home
+          </Link>
+          <Link to="/characters" className={navRow}>
+            <Icon name="users" size={16} className="text-muted" /> Characters
+          </Link>
+          <Link to={`/characters/${character.id}`} className={navRow}>
+            <Icon name="pencil" size={16} className="text-muted" /> Edit character
+          </Link>
+          <Link to="/settings/logs" className={navRow}>
+            <Icon name="list" size={16} className="text-muted" /> Request logs
+          </Link>
+        </nav>
 
         <label className="block mb-4">
           <div className="text-sm font-medium mb-1">Display style</div>

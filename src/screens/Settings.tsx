@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getSettings, patchSettings } from '@/db/repo';
 import { applyTheme, THEME_PRESETS } from '@/lib/themes';
+import Icon from '@/components/Icon';
 import type { ChatStyle, Settings as SettingsShape } from '@/types';
 
 /*
@@ -30,7 +31,9 @@ export default function Settings() {
   return (
     <div className="min-h-full bg-bg text-text font-ui">
       <header className="flex items-center gap-3 px-5 pt-4 pb-3 border-b border-border">
-        <Link to="/" aria-label="Back" className="text-muted text-lg">‹</Link>
+        <Link to="/" aria-label="Back" className="text-muted">
+          <Icon name="chevronLeft" size={22} />
+        </Link>
         <h1 className="text-lg font-semibold">Settings</h1>
       </header>
 

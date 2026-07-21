@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { db } from '@/db/db';
+import Icon from './Icon';
 import type { LogEntry } from '@/types';
 
 /*
@@ -27,10 +28,12 @@ export default function LogSheet({ logId, onClose }: { logId?: string; onClose: 
           <h2 className="font-semibold flex-1">Request log</h2>
           {log?.usage && (
             <span className="text-xs text-muted mr-3">
-              {log.usage.in}→{log.usage.out} tok · {log.ms}ms
+              {log.usage.in} in · {log.usage.out} out · {log.ms}ms
             </span>
           )}
-          <button onClick={onClose} className="text-muted px-2">✕</button>
+          <button onClick={onClose} aria-label="Close" className="text-muted px-2">
+            <Icon name="x" size={20} />
+          </button>
         </div>
         {!log && <p className="text-muted text-sm">No log recorded for this message.</p>}
         {log?.assembledBlocks.map((b, i) => (
