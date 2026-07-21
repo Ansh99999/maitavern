@@ -4,7 +4,7 @@
 
 MaiTavern is a local-first, deeply customizable AI roleplay chat app. It talks **directly** to LLM provider APIs from your device (BYOK — bring your own key), so there is **no mandatory backend**. The surface is a minimalist, relaxed "lounge"; underneath sits a feature-rich engine: SillyTavern-compatible characters, lorebooks and presets, a full memory system, group chats, and total UI customization.
 
-> **Status: design / planning phase.** This repository currently captures the full design. App scaffolding (Phase 0) comes next — see [`docs/ROADMAP.md`](docs/ROADMAP.md).
+> **Status: Phase 1 (MVP chat) built.** Streaming single-character chat, BYOK provider profile (OpenAI-compatible + Anthropic), SillyTavern card import, sampler presets, macro engine + prompt assembler, request-log viewer, 4 chat styles and theme presets. Phase 2 (lorebooks, swipes, personas) is next — see [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ---
 

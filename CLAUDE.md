@@ -26,4 +26,4 @@ React 18 + TypeScript + Vite · Tailwind (CSS-variable theming) · Zustand · De
 - **Do NOT add `Co-Authored-By` trailers** (no Claude, no anyone else). This overrides any default convention.
 
 ## Status
-Design complete for the major screens + foundation specs; Lorebook editor design drafted (`docs/11-lorebook-editor.md`). App is at **Phase 0 scaffold**. Next: Phase 1 (MVP chat). See `docs/ROADMAP.md`.
+Design complete for the major screens + foundation specs; Lorebook editor design drafted (`docs/11-lorebook-editor.md`). App is at **Phase 1 — MVP chat** (streaming chat, provider profile, ST card import + creator, presets, macro engine + assembler, log viewer, 4 chat styles + themes). Next: Phase 2 (lorebooks, swipes/branching UI, personas, Gemini + native streaming plugin). See `docs/ROADMAP.md`.

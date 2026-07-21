@@ -39,3 +39,37 @@ body {
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
 }
+
+/* Markdown inside chat messages — compact, theme-variable driven. */
+.prose-chat p {
+  margin: 0 0 0.5em;
+}
+.prose-chat p:last-child {
+  margin-bottom: 0;
+}
+.prose-chat em {
+  color: rgb(var(--mt-muted));
+}
+.prose-chat code {
+  background: rgb(var(--mt-bg) / 0.6);
+  border-radius: 4px;
+  padding: 0.1em 0.3em;
+  font-size: 0.9em;
+}
+.prose-chat pre {
+  background: rgb(var(--mt-bg) / 0.6);
+  border-radius: 8px;
+  padding: 0.6em;
+  overflow-x: auto;
+}
+.prose-chat blockquote {
+  border-left: 3px solid rgb(var(--mt-accent));
+  margin: 0.4em 0;
+  padding-left: 0.6em;
+  color: rgb(var(--mt-muted));
+}
+.prose-chat ul,
+.prose-chat ol {
+  margin: 0.3em 0;
+  padding-left: 1.2em;
+}

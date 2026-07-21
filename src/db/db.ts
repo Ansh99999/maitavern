@@ -1,10 +1,20 @@
 import Dexie, { type Table } from 'dexie';
+import type {
+  Branch,
+  Character,
+  Chat,
+  Connection,
+  GalleryAsset,
+  LogEntry,
+  Message,
+  Preset,
+} from '@/types';
 
 /*
  * Local-first storage. Schema mirrors docs/09-data-model.md.
  * Only indexed fields are listed in the store strings; full row shapes are the
- * TypeScript interfaces in src/types. Phase 0 stands up the core tables;
- * later phases add documents/docChunks, logs (may move to SQLite), etc.
+ * TypeScript interfaces in src/types. v2 types the Phase 1 tables and adds
+ * logs; later phases add documents/docChunks etc. (logs may move to SQLite).
  */
 export interface BaseRow {
   id: string;
@@ -14,20 +24,21 @@ export interface BaseRow {
 }
 
 export class MaiTavernDB extends Dexie {
-  characters!: Table<BaseRow, string>;
+  characters!: Table<Character, string>;
   lorebooks!: Table<BaseRow, string>;
   lorebookEntries!: Table<BaseRow, string>;
   personas!: Table<BaseRow, string>;
-  presets!: Table<BaseRow, string>;
-  connections!: Table<BaseRow, string>;
-  chats!: Table<BaseRow, string>;
-  messages!: Table<BaseRow & { chatId: string; branchId: string }, string>;
-  branches!: Table<BaseRow & { chatId: string }, string>;
+  presets!: Table<Preset, string>;
+  connections!: Table<Connection, string>;
+  chats!: Table<Chat, string>;
+  messages!: Table<Message, string>;
+  branches!: Table<Branch, string>;
   memories!: Table<BaseRow, string>;
   summaries!: Table<BaseRow, string>;
   themes!: Table<BaseRow, string>;
-  galleryAssets!: Table<BaseRow, string>;
+  galleryAssets!: Table<GalleryAsset, string>;
   regexScripts!: Table<BaseRow, string>;
+  logs!: Table<LogEntry, string>;
   kv!: Table<{ key: string; value: unknown }, string>;
 
   constructor() {
@@ -48,6 +59,9 @@ export class MaiTavernDB extends Dexie {
       galleryAssets: 'id, kind, createdAt',
       regexScripts: 'id, scope, ownerId, order',
       kv: 'key',
+    });
+    this.version(2).stores({
+      logs: 'id, chatId, messageId, at',
     });
   }
 }
